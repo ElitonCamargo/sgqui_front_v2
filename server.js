@@ -25,7 +25,7 @@ app.get('*', (req, res) => {
 });
 
 // Iniciar o servidor
-const PORT = 8080; // Use a porta definida por padrão
+const PORT = 8081; // Use a porta definida por padrão
 
 app.listen(PORT, () => {
     console.log(`WEB: Rodando - PORT: ${PORT}`);
