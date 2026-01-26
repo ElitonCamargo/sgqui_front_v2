@@ -28,5 +28,5 @@ app.get('*', (req, res) => {
 const PORT = 8081; // Use a porta definida por padrão
 
 app.listen(PORT, () => {
-    console.log(`WEB: Rodando - PORT: ${PORT}`);
+    console.log(`WEB: Rodando - PORT: http://localhost:${PORT}`);
 });
