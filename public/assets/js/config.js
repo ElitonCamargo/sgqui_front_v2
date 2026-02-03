@@ -1,5 +1,4 @@
-const urlApi = 'http://localhost:3031';
-// const urlApi = 'http://back.fertiglobalbrasil.com.br';
+const urlApi = 'http://back.fertiglobalbrasil.com.br';
 
 const opt = {
   "urlApi": urlApi,
