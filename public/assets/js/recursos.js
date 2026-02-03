@@ -21,17 +21,12 @@ $(function () {
         };
 
         fetch(opt.urlLogar, requestOptions)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro na requisição: ' + response.statusText);
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     if (!getSessionData('tk')) {
-                        setSessionData('tk', data.data[0].token);
-                        setSessionData('us', data.data[2]);
+                        setSessionData('tk', `Bearer ${data.data.token}`);
+                        setSessionData('us', data.data.usuario);
                         window.location.href = "/";
                     }
                 } else {
@@ -79,19 +74,17 @@ const req_GET = async (url = "", preload = false) => {
         // Remove o preload após completar a requisição
         preload && hidePreload();
 
-        if (response.status === 404) {
+        const result = await response.json();
+
+        if(result.success === false){
             return {
-                status: 404,
-                message: 'Nenhum registro encontrado.',
+                status: response.status,
+                message: result.message || 'Erro desconhecido.',
                 data: null
             };
         }
 
-        if (!response.ok) {
-            throw new Error('Failed to fetch');
-        }
-
-        return await response.json();
+        return result;
 
     } catch (error) {
         preload && hidePreload(); // Garante que o preload será removido em caso de erro
@@ -270,6 +263,7 @@ const setSessionData = (key, value) => {
 // Função para obter dados da sessão
 const getSessionData = (key) => {
     const data = sessionStorage.getItem(key);
+    console.log(data, key);
     return data ? JSON.parse(data) : null;
 }
 
@@ -652,12 +646,26 @@ async function inserirNomeLogado() {
         // Assume que getSessionData é uma função assíncrona
         let sessionUs = await getSessionData('us');
 
+        // Exemplo de estrutura esperada do objeto sessionUs
+        // {
+        //     "id": 1,
+        //     "nome": "Administrador sistema",
+        //     "email": "admin@sgqui.com",
+        //     "senha": "",
+        //     "avatar": "https://keoms.korloy.com/resource/lib/ace-admin/assets/avatars/profile-pic.jpg",
+        //     "status": 1,
+        //     "createdAt": "2024-06-05T09:56:50.000Z",
+        //     "updatedAt": "2026-02-02T15:14:51.000Z"
+        // }
+
         // Verifique se o nome do usuário existe e não está vazio
-        if (sessionUs && sessionUs.usuario && sessionUs.usuario.nome.length > 0) {
-            document.getElementById('nomeLogado').innerText = sessionUs.usuario.nome + ' logado';
-        } else {
+        if(sessionUs === null) {
             console.error('Nome de usuário não encontrado ou está vazio.');
+            return;
         }
+        document.getElementById('nomeLogado').innerText = sessionUs.nome + ' logado';
+        return;
+
     } catch (error) {
         console.error('Erro ao obter os dados da sessão:', error);
     }
