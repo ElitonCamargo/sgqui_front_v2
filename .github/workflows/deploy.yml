@@ -22,8 +22,7 @@ jobs:
             
             cd ${{ secrets.SERVER_ROOT }}/sgqui_front_v2
             git pull origin master
-            npm install
 
             cd ${{ secrets.SERVER_ROOT }}
-            pm2 reload ecosystem.config.js
+            pm2 restart sgqui-dev-front
             pm2 save
