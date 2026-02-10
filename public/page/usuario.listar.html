@@ -81,8 +81,8 @@
 
         let data;
         let table;
-        //variavel de controle se algo foi alterado
         let alterado = 0;
+        let vinculosAtuais = [];
 
         req_GET(opt.urlUsuario).then((result) => {
 
@@ -166,19 +166,83 @@
                     </div>
                     <div class="form-group">
                       <label for="senha">Nova senha:</label>
-                      <input type="password" class="form-control" id="senha" name="senha" placeholder="******" required readonly minlength="6">
+                      <input type="password" class="form-control" id="senha" name="senha" placeholder="******" readonly minlength="6">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Perfis:</label>
+                      <div id="perfisEditContainer" class="border rounded p-2" style="max-height: 220px; overflow-y: auto;"></div>
                     </div>
                     <input type="hidden" id="id" name="id" value="${usuario.id}">
+                    <input type="hidden" id="perfilVinculoId" name="perfilVinculoId" value="">
+                    <input type="hidden" id="perfilAtualId" name="perfilAtualId" value="">
                 </div>
                  `;
 
                 $('#detalhesUsuario').html(html);
                 $('#detalhesModal').modal('show');
+
+                carregarVinculoUsuario(usuario.id).then(({ vinculos, perfilIds }) => {
+                    vinculosAtuais = vinculos;
+                    return carregarPerfisEdicao(perfilIds);
+                }).catch(error => {
+                    showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                });
             }
+
+            function carregarPerfisEdicao(selectedIds) {
+                return req_GET(opt.urlPerfis).then(result => {
+                    if (!result.success) {
+                        showErrorModal(result.message || 'Erro ao carregar perfis.');
+                        return;
+                    }
+
+                    const container = $('#perfisEditContainer').empty();
+                    const selecionados = new Set((selectedIds || []).map(String));
+                    (result.data || []).forEach(p => {
+                        const checked = selecionados.has(String(p.id)) ? 'checked' : '';
+                        const item = $(`
+                  <div class="form-check">
+                    <input class="form-check-input perfil-checkbox-edit" type="checkbox" id="perfil_edit_${p.id}" value="${p.id}" ${checked}>
+                    <label class="form-check-label" for="perfil_edit_${p.id}">${p.nome}</label>
+                  </div>
+                `);
+                        container.append(item);
+                    });
+                });
+            }
+
+            function getPerfisSelecionadosEdicao() {
+                return $('#perfisEditContainer .perfil-checkbox-edit:checked')
+                    .map((_, el) => String($(el).val()))
+                    .get();
+            }
+
+            function carregarVinculoUsuario(usuarioId) {
+                return req_GET(opt.urlUsuarioPerfis + '/usuario/' + usuarioId + '/perfis/').then(result => {
+                    const data = result && result.data;
+                    if (!result.success) {
+                        return { vinculos: [], perfilIds: [] };
+                    }
+
+                    let items = [];
+                    if (Array.isArray(data)) items = data;
+                    else if (data && Array.isArray(data.perfis)) items = data.perfis;
+                    else if (data && data.perfil) items = [data.perfil];
+
+                    const vinculos = items.map(v => ({
+                        vinculoId: v.id || v.vinculoId || v.vinculo_id || v.usuarioPerfilId || v.usuario_perfil_id || '',
+                        perfilId: v.perfilId || (v.perfil && v.perfil.id) || v.id_perfil || v.id || ''
+                    })).filter(v => v.perfilId);
+
+                    return { vinculos, perfilIds: vinculos.map(v => String(v.perfilId)) };
+                });
+            }
+
 
             // Adicionar evento de clique para o botão "Editar"
             $('#detalhesModal').on('click', '#btnEditar', function () {
                 $('.form-control').prop('readonly', false);
+                $('#perfisEditContainer .perfil-checkbox-edit').prop('disabled', false);
                 $('#btnEditar').addClass('d-none');
                 $('#btnSalvar').removeClass('d-none');
             });
@@ -189,9 +253,25 @@
                 event.preventDefault(); // Impedir o envio padrão do formulário
                 const jsonData = serializadoParaJSON($(this).serialize());
 
+                if (!jsonData.senha || String(jsonData.senha).trim() === '') {
+                    delete jsonData.senha;
+                }
+
+                const usuarioId = parseInt(jsonData.id, 10);
+                const selecionados = getPerfisSelecionadosEdicao();
+
+                delete jsonData.perfilIdsEdit;
+                delete jsonData.perfilVinculoId;
+                delete jsonData.perfilAtualId;
+
+                const atuaisIds = new Set(vinculosAtuais.map(v => String(v.perfilId)));
+                const selecionadosSet = new Set(selecionados);
+
+                const paraRemover = vinculosAtuais.filter(v => !selecionadosSet.has(String(v.perfilId)) && v.vinculoId);
+                const paraAdicionar = selecionados.filter(id => !atuaisIds.has(String(id)));
+
                 req_UPDATE(opt.urlUsuario + "/" + jsonData.id, jsonData)
                     .then(result => {
-
                         if (!result.success) {
                             // Tratamento de erro
                             let errorMessage;
@@ -201,9 +281,20 @@
                             return;
                         }
 
-                        $('#detalhesModal .modal-body').html(`${jsonData.nome} atualizado com sucesso!`);
-                        $('#detalhesModal #btnSalvar').hide();
-                        alterado = 1
+                        const desvincular = Promise.all(
+                            paraRemover.map(v => req_DELETE(opt.urlUsuarioPerfis + "/" + v.vinculoId))
+                        );
+
+                        const vincular = paraAdicionar.length
+                            ? Promise.all(paraAdicionar.map(perfilId => req_POST(opt.urlUsuarioPerfis, { usuarioId, perfilId: parseInt(perfilId, 10) })))
+                            : Promise.resolve();
+
+                        return desvincular.then(() => vincular);
+                    })
+                    .then(() => {
+                        // Fecha o modal de confirmação de exclusão
+                        $('#confirmacaoExclusaoModal').modal('hide');
+                        alterado = 1;
                     }).catch(error => {
                         // Tratamento de erro de rede ou erro inesperado
                         showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
@@ -229,7 +320,7 @@
 
             function excluirUsuario(id, nome) {
 
-                if(id == 1){
+                if (id == 1) {
                     showErrorModal("Não é permitido excluir este usuário!");
                     return;
                 }

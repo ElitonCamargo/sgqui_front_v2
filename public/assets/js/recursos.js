@@ -27,11 +27,30 @@ $(function () {
                     if (!getSessionData('tk')) {
                         setSessionData('tk', `Bearer ${data.data.token}`);
                         setSessionData('us', data.data.usuario);
-                        window.location.href = "/";
+                        
+                        const usuarioId = data.data.usuario.id;
+                        req_GET(`${opt.urlUsuarioPerfis}/usuario/${usuarioId}/perfis/`)
+                            .then(result => {
+                                if (result.success && result.data && result.data.length > 0) {
+                                    const perfis = result.data.sort((a, b) => a.vinculo_id - b.vinculo_id);
+                                    const primeiroPerfil = perfis[0];
+                                    
+
+                                    setSessionData('_pfa', obfuscarPerfilAtivo({
+                                        i: primeiroPerfil.id,
+                                        n: primeiroPerfil.nome,
+                                        v: primeiroPerfil.vinculo_id
+                                    }));
+                                }
+                                window.location.href = "/";
+                            })
+                            .catch(() => {
+                                window.location.href = "/";
+                            });
                     }
                 } else {
-                    $('#loginErro').text(data.erro); // Define o texto da div de erro
-                    $('#loginErro').show(); // Mostra a div de erro
+                    $('#loginErro').text(data.erro);
+                    $('#loginErro').show();
                 }
             })
             .catch(error => {
@@ -142,7 +161,10 @@ const req_INSERT = async (url = "", data = {}, preload = false) => {
             data: null
         };
     }
-}
+};
+
+// Alias para compatibilidade com chamadas existentes
+const req_POST = (url = "", data = {}, preload = false) => req_INSERT(url, data, preload);
 
 const req_UPDATE = async (url = "", data = {}, preload = false) => {
     // Mostra o preload antes de fazer a requisição
@@ -166,7 +188,7 @@ const req_UPDATE = async (url = "", data = {}, preload = false) => {
         preload && hidePreload();
 
         if (!response.ok) {
-            console.log(response);
+            // console.log(response);
             throw new Error('Failed to fetch');
         }
         return await response.json();
@@ -204,7 +226,7 @@ const req_DELETE = async (url = '', preload = false) => {
         preload && hidePreload();
 
         if (!response.ok) {
-            console.log(response);
+            // console.log(response);
             throw new Error('Failed to fetch');
         }
         return await response.json();
@@ -263,7 +285,7 @@ const setSessionData = (key, value) => {
 // Função para obter dados da sessão
 const getSessionData = (key) => {
     const data = sessionStorage.getItem(key);
-    console.log(data, key);
+    // console.log(data, key);
     return data ? JSON.parse(data) : null;
 }
 
@@ -484,10 +506,13 @@ async function start() {
             .catch(error => console.error('Erro01:', error));
     } else {
         await carregaMenu();
+        const sessionUs = getSessionData('us');
+        if (sessionUs && sessionUs.id) {
+            await inserirNomeLogado();
+        }
         await carregaHome();
         await carregaRodape();
         await carregaCardsHome();
-        await inserirNomeLogado();
     }
 }
 
@@ -643,30 +668,151 @@ async function carregaCardsHome() {
 
 async function inserirNomeLogado() {
     try {
-        // Assume que getSessionData é uma função assíncrona
-        let sessionUs = await getSessionData('us');
+        let sessionUs = getSessionData('us');
 
-        // Exemplo de estrutura esperada do objeto sessionUs
-        // {
-        //     "id": 1,
-        //     "nome": "Administrador sistema",
-        //     "email": "admin@sgqui.com",
-        //     "senha": "",
-        //     "avatar": "https://keoms.korloy.com/resource/lib/ace-admin/assets/avatars/profile-pic.jpg",
-        //     "status": 1,
-        //     "createdAt": "2024-06-05T09:56:50.000Z",
-        //     "updatedAt": "2026-02-02T15:14:51.000Z"
-        // }
-
-        // Verifique se o nome do usuário existe e não está vazio
         if(sessionUs === null) {
             console.error('Nome de usuário não encontrado ou está vazio.');
             return;
         }
-        document.getElementById('nomeLogado').innerText = sessionUs.nome + ' logado';
+
+        const userNameElement = document.getElementById('userName');
+        const userAvatarElement = document.getElementById('userAvatar');
+
+        if (userNameElement) {
+            userNameElement.textContent = sessionUs.nome || 'Usuário';
+        }
+
+        if (userAvatarElement && sessionUs.avatar) {
+            userAvatarElement.src = sessionUs.avatar;
+        }
+
+        await carregarPerfisUsuario(sessionUs.id);
+
         return;
 
     } catch (error) {
         console.error('Erro ao obter os dados da sessão:', error);
     }
+}
+
+async function carregarPerfisUsuario(usuarioId) {
+    try {
+        const result = await req_GET(`${opt.urlUsuarioPerfis}/usuario/${usuarioId}/perfis/`);
+        
+        if (!result.success || !result.data || result.data.length === 0) {
+            console.error('Nenhum perfil encontrado para o usuário.');
+            $('#perfilAtivoSelect').html('<option value="">Sem perfis</option>');
+            return;
+        }
+
+        const perfis = result.data;
+        const select = $('#perfilAtivoSelect');
+        
+        if (!select.length) {
+            console.error('Select de perfis não encontrado no DOM');
+            return;
+        }
+
+        select.empty();
+
+        perfis.forEach(perfil => {
+            $('<option>')
+                .val(perfil.id)
+                .text(perfil.nome)
+                .appendTo(select);
+        });
+
+        const perfilAtivo = getPerfilAtivo();
+        const perfilIdAtivo = perfilAtivo?.i || perfis[0].id;
+        
+        select.val(perfilIdAtivo);
+
+        select.off('change').on('change', function() {
+            const novoPerfilId = $(this).val();
+            const novoPerfilObj = perfis.find(p => p.id == novoPerfilId);
+            if (novoPerfilObj) {
+                trocarPerfilAtivo(novoPerfilObj, perfis);
+            }
+        });
+
+    } catch (error) {
+        console.error('Erro ao carregar perfis do usuário:', error);
+        $('#perfilAtivoSelect').html('<option value="">Erro ao carregar</option>');
+    }
+}
+
+function trocarPerfilAtivo(perfilSelecionado, todosOsPerfis) {
+    if (!perfilSelecionado || !perfilSelecionado.id) {
+        showErrorModal('Perfil inválido.');
+        return;
+    }
+
+    const perfilValido = todosOsPerfis.find(p => p.id === perfilSelecionado.id);
+    if (!perfilValido) {
+        showErrorModal('Perfil inválido ou não disponível.');
+        return;
+    }
+
+    setPerfilAtivo({
+        i: perfilValido.id,
+        n: perfilValido.nome,
+        v: perfilValido.vinculo_id
+    });
+
+    showToast('Perfil alterado com sucesso! Recarregando...', 'success');
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000);
+}
+
+function showToast(message, type = 'info') {
+    const toast = $(`
+        <div class="toast position-fixed top-0 end-0 m-3" role="alert" style="z-index: 9999;">
+            <div class="toast-header bg-${type === 'success' ? 'success' : 'info'} text-white">
+                <strong class="me-auto">${type === 'success' ? 'Sucesso' : 'Informação'}</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">${message}</div>
+        </div>
+    `);
+    
+    $('body').append(toast);
+    const bsToast = new bootstrap.Toast(toast[0]);
+    bsToast.show();
+    
+    toast.on('hidden.bs.toast', function() {
+        $(this).remove();
+    });
+}
+
+function obfuscarPerfilAtivo(perfil) {
+    const str = JSON.stringify(perfil);
+    const encoded = btoa(unescape(encodeURIComponent(str)));
+    const hash = encoded.split('').reverse().join('');
+    const timestamp = Date.now().toString(36);
+    return `${hash}.${timestamp}`;
+}
+
+function desobfuscarPerfilAtivo(obfuscado) {
+    try {
+        if (!obfuscado || typeof obfuscado !== 'string') return null;
+        const parts = obfuscado.split('.');
+        if (parts.length < 2) return null;
+        const hash = parts[0];
+        const reversed = hash.split('').reverse().join('');
+        const decoded = decodeURIComponent(escape(atob(reversed)));
+        return JSON.parse(decoded);
+    } catch (e) {
+        console.error('Erro ao desobfuscar perfil');
+        return null;
+    }
+}
+
+function getPerfilAtivo() {
+    const obfuscado = getSessionData('_pfa');
+    return desobfuscarPerfilAtivo(obfuscado);
+}
+
+function setPerfilAtivo(perfil) {
+    setSessionData('_pfa', obfuscarPerfilAtivo(perfil));
 }

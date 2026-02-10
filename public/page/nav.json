@@ -53,7 +53,12 @@
         },
         {
             "title": "Usuários",
-            "dropdown": [{
+            "dropdown": [
+                {
+                    "title": "Perfis de Usuário",
+                    "url": "/usuario/perfis"
+                },
+                {
                     "title": "Cadastrar",
                     "url": "/usuario/cadastrar"
                 },
@@ -61,6 +66,8 @@
                     "title": "Listar",
                     "url": "/usuario/listar"
                 }
+                
+                
             ],
             "icon": "fa-users",
             "text": "Gerencie os usuários do sistema.",

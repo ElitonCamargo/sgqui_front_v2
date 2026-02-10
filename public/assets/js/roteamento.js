@@ -43,12 +43,20 @@ const rotas = [{
         'component': '/page/projeto.etapa.html'
     },
     {
+        'path': '/usuario/perfis',
+        'component': '/page/usuario.perfis.html'
+    },
+    {
         'path': '/usuario/cadastrar',
         'component': '/page/usuario.cadastrar.html'
     },
     {
         'path': '/usuario/listar',
         'component': '/page/usuario.listar.html'
+    },
+    {
+        'path': '/usuario/trocar-senha',
+        'component': '/page/usuario.trocar-senha.html'
     },
     {
         'path': '/configuracao',

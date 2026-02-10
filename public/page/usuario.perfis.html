@@ -1,0 +1,945 @@
+<!-- 
+Estrutura da API de Perfis:
+GET /rbac/perfis - Listar todos
+GET /rbac/perfis/:id - Listar por ID  
+POST /rbac/perfis - Cadastrar { nome, descricao }
+PUT /rbac/perfis/:id - Alterar { nome, descricao }
+DELETE /rbac/perfis/:id - Deletar
+
+Resposta API:
+{
+  "id": 1,
+  "nome": "ADMINISTRADOR",
+  "descricao": "Acesso total e administração de usuários/perfis"
+}
+
+VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
+-->
+
+<style>
+    #permissoesContainer {
+        /* background-color: #f8f9fa; */
+        padding: 15px;
+        border-radius: 8px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    #permissoesCadastroContainer {
+        /* background-color: #f8f9fa; */
+        padding: 15px;
+        border-radius: 8px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    #permissoesContainer h6 {
+        color: #0d6efd;
+        font-size: 1rem;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+    }
+
+    #permissoesContainer .form-check {
+        padding: 10px;
+        /* background: white; */
+        border-radius: 6px;
+        transition: all 0.2s;
+        border: 1px solid #dee2e6;
+    }
+
+    #permissoesContainer .form-check:hover {
+        /* background-color: #f0f7ff; */
+        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+        border-color: #0d6efd;
+    }
+
+    #permissoesContainer .form-check-input {
+        width: 18px;
+        height: 18px;
+        margin-top: 2px;
+        cursor: pointer;
+    }
+
+    /* #permissoesContainer .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    } */
+
+    #permissoesContainer .form-check-input:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    #permissoesContainer .form-check-label {
+        cursor: pointer;
+        user-select: none;
+        margin-left: 8px;
+        font-size: 0.9rem;
+    }
+
+    #permissoesContainer .badge {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+        margin-right: 6px;
+        font-weight: 600;
+    }
+
+    .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+    }
+</style>
+
+<div class="row mb-3">
+    <div class="col">
+        <h2>Perfis de Usuário</h2>
+    </div>
+    <div class="col text-end">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#cadastrarModal">
+            <i class="fa-solid fa-plus"></i> Novo Perfil
+        </button>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table id="tabela-perfis" class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Os dados da tabela serão preenchidos dinamicamente pelo DataTable -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal de Cadastro -->
+<div class="modal fade" id="cadastrarModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cadastrar Novo Perfil</h5>
+                <button type="button" class="btn-close btn-fecha-modal" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <form id="formCadastrarPerfil">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="cadastro_nome">Nome do Perfil *</label>
+                                <input type="text" class="form-control" id="cadastro_nome" name="nome" required
+                                    maxlength="100">
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="cadastro_descricao">Descrição</label>
+                                <textarea class="form-control" id="cadastro_descricao" name="descricao" rows="3"
+                                    maxlength="500"></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label fw-bold">Permissões do Perfil</label>
+                                <div id="loadingPermissoesCadastro" class="text-center">
+                                    <div class="spinner-border spinner-border-sm" role="status">
+                                        <span class="visually-hidden">Carregando...</span>
+                                    </div>
+                                    Carregando permissões...
+                                </div>
+                                <div id="permissoesCadastroContainer" class="border rounded p-3"
+                                    style="max-height: 400px; overflow-y: auto; display: none;">
+                                    <!-- Permissões do cadastro serão carregadas aqui -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary btn-sm">Salvar</button>
+                    <button type="button" class="btn btn-secondary btn-sm btn-fecha-modal"
+                        data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Detalhes/Edição -->
+<div class="modal fade" id="detalhesModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalhes do Perfil</h5>
+                <button type="button" class="btn-close btn-fecha-modal" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <form id="formEditarPerfil">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div id="detalhesPerfil">
+                                <!-- Detalhes do perfil serão exibidos aqui -->
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="form-group mb-3">
+                                <label class="form-label fw-bold">Permissões do Perfil</label>
+                                <div id="loadingPermissoes" class="text-center">
+                                    <div class="spinner-border spinner-border-sm" role="status">
+                                        <span class="visually-hidden">Carregando...</span>
+                                    </div>
+                                    Carregando permissões...
+                                </div>
+                                <div id="permissoesContainer" class="border rounded p-3"
+                                    style="max-height: 400px; overflow-y: auto; display: none;">
+                                    <!-- Permissões serão carregadas aqui -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="btnEditar" class="btn btn-outline-secondary btn-sm">Editar</button>
+                    <button type="submit" id="btnSalvar" class="btn btn-outline-secondary btn-sm d-none">Salvar
+                        Alterações</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm btn-fecha-modal"
+                        data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="confirmacaoExclusaoModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close btn-fecha-modal" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Deseja realmente excluir o perfil <b id="nomeExclui"></b>?</p>
+                <p class="text-danger"><small>Atenção: Esta ação não pode ser desfeita!</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="confirmarExclusao">Confirmar Exclusão</button>
+                <button type="button" class="btn btn-secondary btn-fecha-modal"
+                    data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==================== ESCAPE HTML FUNCTION ====================
+    // Função auxiliar para escapar HTML
+    function escapeHtml(text) {
+
+        // Tratar valores null, undefined ou vazios
+        if (text === null || text === undefined) return '';
+        if (text === '') return '';
+
+        // Converter para string
+        let str = String(text);
+
+        // Remover caracteres de controle ASCII problemáticos (exceto tab, newline, carriage return)
+        str = str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '');
+
+        // Remover line separators e paragraph separators Unicode
+        str = str.replace(/[\u2028\u2029]/g, '');
+
+        // Mapa de caracteres especiais
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;',
+            '\n': '&#10;',
+            '\r': '&#13;',
+            '\t': '&#9;',
+            '/': '&#47;',
+            '\\': '&#92;'
+        };
+
+        // Substituir caracteres especiais
+        return str.replace(/[&<>"'\n\r\t\/\\]/g, function (m) {
+            return map[m];
+        });
+    }
+
+    function normalizarVinculoId(p) {
+        return p.vinculoId || p.vinculo_id || p.perfil_permissao_id || p.perfilPermissaoId || p.id_vinculo || '';
+    }
+
+    function labelMetodo(metodo) {
+        const m = String(metodo || '').toUpperCase();
+        if (m === 'GET') return 'ver';
+        if (m === 'POST') return 'cadastrar';
+        if (m === 'PUT') return 'alterar';
+        if (m === 'DELETE') return 'deletar';
+        return m.toLowerCase();
+    }
+
+    function ordemMetodo(metodo) {
+        const m = String(metodo || '').toUpperCase();
+        if (m === 'GET') return 1;
+        if (m === 'POST') return 2;
+        if (m === 'PUT') return 3;
+        if (m === 'DELETE') return 4;
+        return 99;
+    }
+
+    $(function () {
+        try {
+
+            // Capturar erros globais do jQuery
+            $(document).ajaxError(function (event, jqxhr, settings, thrownError) {
+                // (removido: console.error de debug)
+            });
+
+            let data;
+            let table;
+            let alterado = 0;
+            let todasPermissoes = []; // Cache de todas as permissões
+            let permissoesPerfilAtual = []; // Permissões do perfil atual
+            let carregandoPermissoesPromise = null;
+
+            function garantirTodasPermissoesCarregadas() {
+                if (todasPermissoes.length > 0) return Promise.resolve(todasPermissoes);
+                if (!carregandoPermissoesPromise) {
+                    carregandoPermissoesPromise = carregarTodasPermissoes();
+                }
+                return carregandoPermissoesPromise;
+            }
+            window.garantirTodasPermissoesCarregadas = garantirTodasPermissoesCarregadas;
+
+            function carregarTodasPermissoes() {
+                return req_GET(opt.urlPermissoes).then((result) => {
+
+                    console.log('RESULT:', result.data);
+
+                    if (result.success && Array.isArray(result.data)) {
+
+                        // Sanitizar dados das permissões
+                        todasPermissoes = result.data.map(p => ({
+                            ...p,
+                            recurso: String(p.recurso || '').trim(),
+                            descricao: String(p.descricao || '').trim(),
+                            metodo: String(p.metodo || '').trim(),
+                            rota_template: String(p.rota_template || '').trim()
+                        }));
+
+                        // LOG TEMPORÁRIO para debug
+                        console.log('PERMISSÕES CARREGADAS:', todasPermissoes.length);
+                        if (todasPermissoes.length > 0) {
+                            console.log('EXEMPLO DE PERMISSÃO:', todasPermissoes[0]);
+                        }
+                        return todasPermissoes;
+                    }
+                    todasPermissoes = [];
+                    return [];
+                }).catch(err => {
+                    console.error('Erro ao carregar permissões:', err);
+                    todasPermissoes = [];
+                    return [];
+                });
+            }
+
+            // console.log('PERMISSOES:', carregarTodasPermissoes());
+
+            function carregarPermissoesDoPerfil(perfilId) {
+                return req_GET(opt.urlPerfilPermissoes + '/perfil/' + perfilId).then((result) => {
+                    if (result.success && result.data.length > 0) {
+                        // A resposta vem como array com um objeto contendo perfil e permissoes
+                        const permissoes = result.data[0].permissoes || [];
+                        // Sanitizar dados das permissões
+                        permissoesPerfilAtual = permissoes.map(p => ({
+                            ...p,
+                            recurso: String(p.recurso || '').trim(),
+                            descricao: String(p.descricao || '').trim(),
+                            metodo: String(p.metodo || '').trim(),
+                            rota_template: String(p.rota_template || '').trim(),
+                            vinculoId: normalizarVinculoId(p)
+                        }));
+                        return permissoesPerfilAtual;
+                    }
+                    permissoesPerfilAtual = [];
+                    return [];
+                }).catch((err) => {
+                    console.error('Erro ao carregar permissões do perfil:', err);
+                    permissoesPerfilAtual = [];
+                    return [];
+                });
+            }
+
+            function montarPermissoesPorRecurso(lista) {
+                const mapa = {};
+                (lista || []).forEach(item => {
+                    const recurso = String(item.recurso || '').trim();
+                    const permissoes = Array.isArray(item.permissoes) ? item.permissoes : [item];
+                    permissoes.forEach(permissao => {
+                        if (!permissao || permissao.id == null) return;
+                        if (!mapa[recurso]) mapa[recurso] = [];
+                        mapa[recurso].push({
+                            ...permissao,
+                            recurso: permissao.recurso || recurso
+                        });
+                    });
+                });
+                return mapa;
+            }
+
+            function renderizarPermissoes(perfilId = null, readonly = true) {
+                const container = $('#permissoesContainer');
+
+                if (todasPermissoes.length === 0) {
+                    const alert = $('<div>').addClass('alert alert-warning').text('Nenhuma permissão disponível no sistema.');
+                    container.empty().append(alert);
+                    return;
+                }
+
+                const permissoesPorRecurso = montarPermissoesPorRecurso(todasPermissoes);
+
+                container.empty();
+
+                Object.keys(permissoesPorRecurso).sort().forEach(recurso => {
+
+                    console.log("recurso", recurso)
+
+                    // Container do recurso
+                    const recursoDiv = $('<div>').addClass('mb-3');
+
+                    // Título do recurso
+                    const titulo = $('<h6>').addClass('fw-bold text-primary border-bottom pb-2');
+                    const icon = $('<i>').addClass('fa-solid fa-folder');
+                    titulo.append(icon).append(' ' + recurso);
+                    recursoDiv.append(titulo);
+
+                    // Container das permissões (grid)
+                    const row = $('<div>').addClass('row');
+
+                    // Criar checkbox para cada permissão
+                    permissoesPorRecurso[recurso]
+                        .sort((a, b) => ordemMetodo(a.metodo) - ordemMetodo(b.metodo))
+                        .forEach(permissao => {
+                            const isChecked = permissoesPerfilAtual.some(p => p.id === permissao.id);
+                            const vinculoId = isChecked
+                                ? (permissoesPerfilAtual.find(p => p.id === permissao.id).vinculoId || '')
+                                : '';
+
+                            // Coluna
+                            const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
+                            const formCheck = $('<div>').addClass('form-check');
+
+                            const checkbox = $('<input>')
+                                .addClass('form-check-input permissao-checkbox')
+                                .attr('type', 'checkbox')
+                                .val(permissao.id)
+                                .attr('id', 'perm_' + permissao.id)
+                                .attr('data-vinculo-id', vinculoId)
+                                .attr('data-perfil-id', perfilId || '')
+                                .prop('checked', isChecked)
+                                .prop('disabled', readonly);
+
+                            const label = $('<label>')
+                                .addClass('form-check-label small')
+                                .attr('for', 'perm_' + permissao.id)
+                                .attr('title', permissao.descricao || '');
+
+                            const badge = $('<span>')
+                                .addClass('badge bg-secondary')
+                                .text(labelMetodo(permissao.metodo));
+                            label.append(badge).append(' ' + (permissao.descricao || ''));
+
+                            formCheck.append(checkbox).append(label);
+                            col.append(formCheck);
+                            row.append(col);
+                        });
+
+                    recursoDiv.append(row);
+                    container.append(recursoDiv);
+                });
+
+                // Adicionar evento onChange para salvar automaticamente
+                if (!readonly && perfilId) {
+                    attachPermissaoEventHandlers(perfilId);
+                } else {
+                    console.log('[DEBUG RENDER 9] Modo readonly ou sem perfilId');
+                }
+            }
+
+            function renderizarPermissoesCadastro() {
+                const container = $('#permissoesCadastroContainer');
+                if (todasPermissoes.length === 0) {
+                    const alert = $('<div>').addClass('alert alert-warning').text('Nenhuma permissão disponível no sistema.');
+                    container.empty().append(alert);
+                    return;
+                }
+
+                const permissoesPorRecurso = montarPermissoesPorRecurso(todasPermissoes);
+
+                container.empty();
+
+                Object.keys(permissoesPorRecurso).sort().forEach(recurso => {
+                    const recursoDiv = $('<div>').addClass('mb-3');
+                    const titulo = $('<h6>').addClass('fw-bold text-primary border-bottom pb-2');
+                    const icon = $('<i>').addClass('fa-solid fa-folder');
+                    titulo.append(icon).append(' ' + recurso);
+                    recursoDiv.append(titulo);
+
+                    const row = $('<div>').addClass('row');
+
+                    permissoesPorRecurso[recurso]
+                        .sort((a, b) => ordemMetodo(a.metodo) - ordemMetodo(b.metodo))
+                        .forEach(permissao => {
+                            const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
+                            const formCheck = $('<div>').addClass('form-check');
+
+                            const checkbox = $('<input>')
+                                .addClass('form-check-input permissao-cadastro')
+                                .attr('type', 'checkbox')
+                                .val(permissao.id)
+                                .attr('id', 'perm_cad_' + permissao.id);
+
+                            const label = $('<label>')
+                                .addClass('form-check-label small')
+                                .attr('for', 'perm_cad_' + permissao.id)
+                                .attr('title', permissao.descricao || '');
+
+                            const badge = $('<span>')
+                                .addClass('badge bg-secondary')
+                                .text(labelMetodo(permissao.metodo));
+                            label.append(badge).append(' ' + (permissao.descricao || ''));
+
+                            formCheck.append(checkbox).append(label);
+                            col.append(formCheck);
+                            row.append(col);
+                        });
+
+                    recursoDiv.append(row);
+                    container.append(recursoDiv);
+                });
+            }
+
+            function getPermissoesSelecionadasCadastro() {
+                return $('#permissoesCadastroContainer .permissao-cadastro:checked')
+                    .map((_, el) => parseInt($(el).val(), 10))
+                    .get();
+            }
+
+            function getPermissoesSelecionadasEdicao() {
+                return $('#permissoesContainer .permissao-checkbox:checked')
+                    .map((_, el) => parseInt($(el).val(), 10))
+                    .get();
+            }
+
+            // Função para adicionar eventos aos checkboxes de permissão
+            function attachPermissaoEventHandlers(perfilId) {
+                // Removido: não salvar no change
+                $('.permissao-checkbox').off('change');
+            }
+
+            // Carregar permissões no início
+            garantirTodasPermissoesCarregadas().then(() => {
+                renderizarPermissoesCadastro();
+                $('#loadingPermissoesCadastro').hide();
+                $('#permissoesCadastroContainer').show();
+            });
+
+            // Recarregar permissões ao abrir cadastro
+            $('#cadastrarModal').on('shown.bs.modal', function () {
+                garantirTodasPermissoesCarregadas().then(() => {
+                    renderizarPermissoesCadastro();
+                    $('#loadingPermissoesCadastro').hide();
+                    $('#permissoesCadastroContainer').show();
+                });
+            });
+
+            // CARREGA DADOS DOS PERFIS
+            req_GET(opt.urlPerfis).then((result) => {
+                if (!result.success) {
+                    let errorMessage = (result.message || 'Erro desconhecido.');
+                    showErrorModal(errorMessage);
+                    return;
+                }
+
+                data = (result.data || []).map((perfil, index) => {
+                    // Sanitizar dados das permissões
+                    const sanitizado = {
+                        ...perfil,
+                        nome: String(perfil.nome || '').trim(),
+                        descricao: String(perfil.descricao || '').trim(),
+                        id: perfil.id
+                    };
+                    return sanitizado;
+                });
+
+                try {
+                    table = $('#tabela-perfis').DataTable({
+                        data: data,
+                        order: [[3, 'desc']],
+                        columns: [
+                            {
+                                title: 'Nome',
+                                data: 'nome',
+                                render: function (data, type, row) {
+                                    if (type === 'display') {
+                                        const escaped = escapeHtml(data);
+                                        return escaped;
+                                    }
+                                    return data;
+                                }
+                            },
+                            {
+                                title: 'Descrição',
+                                data: 'descricao',
+                                render: function (data, type, row) {
+                                    if (type === 'display') {
+                                        const escaped = escapeHtml(data || '');
+                                        return escaped;
+                                    }
+                                    return data || '';
+                                }
+                            },
+                            {
+                                title: 'Ações',
+                                data: null,
+                                orderable: false,
+                                render: function (data, type, row) {
+                                    if (type === 'display') {
+                                        const btnView = $('<button>')
+                                            .addClass('btn btn-outline-secondary btn-sm btn-detalhes-editar')
+                                            .attr('data-id', row.id)
+                                            .attr('title', 'Ver/Editar')
+                                            .html('<i class="fa-solid fa-eye"></i>/<i class="fa-solid fa-pen-to-square"></i>');
+                                        const btnDelete = $('<button>')
+                                            .addClass('btn btn-outline-danger btn-sm btn-excluir ms-1')
+                                            .attr('data-id', row.id)
+                                            .attr('data-nome', escapeHtml(String(row.nome || '')))
+                                            .attr('title', 'Excluir')
+                                            .html('<i class="fa-solid fa-ban"></i>');
+                                        const container = $('<div>').append(btnView).append(btnDelete);
+                                        return container.html();
+                                    }
+                                    return '';
+                                }
+                            },
+                            { title: 'ID', data: 'id', visible: false }
+                        ],
+                        columnDefs: [
+                            { targets: 2, autoWidth: true }
+                        ],
+                        searching: true,
+                        language: {
+                            "sEmptyTable": "Nenhum registro encontrado",
+                            "sInfo": "Mostrando de _START_ até _END_ de _TOTAL_ registros",
+                            "sInfoEmpty": "Mostrando 0 até 0 de 0 registros",
+                            "sInfoFiltered": "(Filtrados de _MAX_ registros)",
+                            "sInfoPostFix": "",
+                            "sInfoThousands": ".",
+                            "sLengthMenu": "_MENU_ resultados por página",
+                            "sLoadingRecords": "Carregando...",
+                            "sProcessing": "Processando...",
+                            "sZeroRecords": "Nenhum registro encontrado",
+                            "sSearch": "Pesquisar",
+                            "oPaginate": {
+                                "sNext": "Próximo",
+                                "sPrevious": "Anterior",
+                                "sFirst": "Primeiro",
+                                "sLast": "Último"
+                            },
+                            "oAria": {
+                                "sSortAscending": ": Ordenar colunas de forma ascendente",
+                                "sSortDescending": ": Ordenar colunas de forma descendente"
+                            },
+                            "select": {
+                                "rows": {
+                                    "_": "Selecionado %d linhas",
+                                    "0": "Nenhuma linha selecionada",
+                                    "1": "Selecionado 1 linha"
+                                }
+                            }
+                        }
+                    });
+                } catch (dtError) {
+                    showErrorModal('Erro ao criar tabela: ' + dtError.message);
+                    throw dtError;
+                }
+
+                // Adiciona campos de pesquisa em cada cabeçalho de coluna
+                try {
+                    $('#tabela-perfis thead th').each(function () {
+                        let title = $(this).text();
+                        if (title !== "Ações") {
+                            // Usar jQuery para criar o input de forma segura
+                            const input = $('<input>')
+                                .attr('type', 'text')
+                                .addClass('form-control form-control-sm')
+                                .attr('placeholder', title);
+                            $(this).html(input);
+                        }
+                    });
+                } catch (searchError) {
+                    console.error('[DEBUG 23] Erro ao adicionar campos de pesquisa:', searchError);
+                }
+
+                // Adiciona evento de pesquisa para cada campo
+                $('#tabela-perfis thead th input').on('keyup', function () {
+                    let columnIndex = $(this).closest('th').index();
+                    table.column(columnIndex).search(this.value).draw();
+                });
+                console.log('='.repeat(80));
+
+                ///////////////CADASTRAR///////////////////////
+                $('#formCadastrarPerfil').on('submit', function (event) {
+                    event.preventDefault();
+                    const jsonData = serializadoParaJSON($(this).serialize());
+                    const permissoesSelecionadas = getPermissoesSelecionadasCadastro();
+
+                    req_POST(opt.urlPerfis, jsonData)
+                        .then(result => {
+                            if (!result.success) {
+                                let errorMessage = (result.message || 'Erro desconhecido.');
+                                showErrorModal(errorMessage);
+                                return;
+                            }
+
+                            const novoPerfil = result.data;
+                            const vincularPermissoes = permissoesSelecionadas.length > 0
+                                ? req_POST(opt.urlPerfilPermissoes, { perfilId: novoPerfil.id, permissoesIds: permissoesSelecionadas })
+                                : Promise.resolve({ success: true });
+
+                            vincularPermissoes.then(vinculoResult => {
+                                if (vinculoResult && vinculoResult.success === false) {
+                                    showErrorModal(vinculoResult.message || 'Erro ao vincular permissões.');
+                                }
+
+                                console.log('[DEBUG CADASTRO 5] Perfil cadastrado com sucesso');
+                                $('#cadastrarModal').modal('hide');
+                                $('#formCadastrarPerfil')[0].reset();
+                                alterado = 1;
+                                showSuccessMessage('Perfil cadastrado com sucesso!');
+
+                                setTimeout(() => {
+                                    if (novoPerfil && novoPerfil.id) {
+                                        console.log('[DEBUG CADASTRO 6] Abrindo modal de edição para novo perfil:', novoPerfil.id);
+                                        data.push(novoPerfil);
+                                        exibirDetalhes(novoPerfil);
+                                        setTimeout(() => {
+                                            $('#btnEditar').click();
+                                        }, 500);
+                                    }
+                                }, 500);
+                            }).catch(error => {
+                                console.error('[DEBUG CADASTRO 8] Erro ao vincular permissões:', error);
+                                showErrorModal('Erro de comunicação ao vincular permissões.');
+                            });
+                        })
+                        .catch(error => {
+                            showErrorModal('Erro de comunicação: ' + (error.message || 'Erro desconhecido.'));
+                        });
+                });
+
+                ///////////////EDITAR///////////////////////
+                // Abre modal de visualização e edição
+                $('#tabela-perfis').on('click', '.btn-detalhes-editar', function () {
+                    const id = $(this).data('id');
+                    const perfil = data.find(item => item.id === id);
+                    exibirDetalhes(perfil);
+                });
+
+                function exibirDetalhes(perfil) {
+                    // Garantir que os valores existem, são strings e estão limpos
+                    const nomeSeguro = String(perfil.nome || '').trim();
+                    const descricaoSegura = String(perfil.descricao || '').trim();
+                    const idSeguro = String(perfil.id || '');
+
+                    // Criar elementos DOM de forma segura
+                    const divNome = $('<div>').addClass('form-group mb-3');
+                    const labelNome = $('<label>').attr('for', 'nome').text('Nome do Perfil:');
+                    const inputNome = $('<input>')
+                        .attr('type', 'text')
+                        .addClass('form-control')
+                        .attr('id', 'nome')
+                        .attr('name', 'nome')
+                        .val(nomeSeguro)
+                        .prop('readonly', true)
+                        .attr('required', true)
+                        .attr('maxlength', '100');
+                    divNome.append(labelNome).append(inputNome);
+
+                    const divDescricao = $('<div>').addClass('form-group mb-3');
+                    const labelDescricao = $('<label>').attr('for', 'descricao').text('Descrição:');
+                    const textareaDescricao = $('<textarea>')
+                        .addClass('form-control')
+                        .attr('id', 'descricao')
+                        .attr('name', 'descricao')
+                        .attr('rows', '3')
+                        .prop('readonly', true)
+                        .attr('maxlength', '500')
+                        .val(descricaoSegura);
+                    divDescricao.append(labelDescricao).append(textareaDescricao);
+
+                    const inputId = $('<input>')
+                        .attr('type', 'hidden')
+                        .attr('id', 'id')
+                        .attr('name', 'id')
+                        .val(idSeguro);
+
+                    $('#detalhesPerfil').empty().append(divNome).append(divDescricao).append(inputId);
+                    $('#permissoesContainer').hide();
+                    $('#loadingPermissoes').show();
+                    $('#detalhesModal').modal('show');
+
+                    garantirTodasPermissoesCarregadas()
+                        .then(() => carregarPermissoesDoPerfil(perfil.id))
+                        .then(() => {
+                            renderizarPermissoes(perfil.id, true);
+                            $('#loadingPermissoes').hide();
+                            $('#permissoesContainer').show();
+                        })
+                        .catch(err => {
+                            $('#loadingPermissoes').hide();
+                            $('#permissoesContainer').html('<p class="text-danger">Erro ao carregar permissões.</p>').show();
+                        });
+                }
+
+                // Adicionar evento de clique para o botão "Editar"
+                $('#detalhesModal').on('click', '#btnEditar', function () {
+                    const perfilId = $('#id').val();
+                    $('.form-control').prop('readonly', false);
+                    $('#btnEditar').addClass('d-none');
+                    $('#btnSalvar').removeClass('d-none');
+
+                    // Re-renderiza em modo edição para habilitar os checkboxes
+                    renderizarPermissoes(parseInt(perfilId, 10), false);
+                });
+
+                // Adicionar evento de submit para o formulário de edição
+                $('#formEditarPerfil').on('submit', function (event) {
+                    event.preventDefault();
+                    const jsonData = serializadoParaJSON($(this).serialize());
+                    const permissoesSelecionadas = getPermissoesSelecionadasEdicao();
+
+                    req_UPDATE(opt.urlPerfis + "/" + jsonData.id, jsonData)
+                        .then(result => {
+                            if (!result.success) {
+                                let errorMessage = (result.message || 'Erro desconhecido.');
+                                showErrorModal(errorMessage);
+                                return;
+                            }
+
+                            const perfilId = parseInt(jsonData.id, 10);
+                            const atuais = permissoesPerfilAtual.map(p => ({ id: p.id, vinculoId: p.vinculoId }));
+                            const atuaisIds = new Set(atuais.map(p => p.id));
+                            const selecionadasSet = new Set(permissoesSelecionadas);
+
+                            const paraRemover = atuais.filter(p => !selecionadasSet.has(p.id) && p.vinculoId);
+                            const paraAdicionar = permissoesSelecionadas.filter(id => !atuaisIds.has(id));
+
+                            const removerPromise = Promise.all(
+                                paraRemover.map(p => req_DELETE(opt.urlPerfilPermissoes + '/' + p.vinculoId))
+                            );
+
+                            const adicionarPromise = paraAdicionar.length
+                                ? req_POST(opt.urlPerfilPermissoes, { perfilId, permissoesIds: paraAdicionar })
+                                : Promise.resolve({ success: true });
+
+                            return removerPromise
+                                .then(() => adicionarPromise)
+                                .then(() => carregarPermissoesDoPerfil(perfilId));
+                        })
+                        .then(resultPermissoes => {
+                            if (resultPermissoes && resultPermissoes.success === false) {
+                                showErrorModal(resultPermissoes.message || 'Erro ao salvar permissões.');
+                                return;
+                            }
+
+                            const successDiv = $('<div>').addClass('alert alert-success').text('Perfil atualizado com sucesso!');
+                            $('#detalhesModal .modal-body').empty().append(successDiv);
+                            $('#detalhesModal #btnSalvar').hide();
+                            alterado = 1;
+                        })
+                        .catch(error => {
+                            showErrorModal('Erro de comunicação: ' + (error.message || 'Erro desconhecido.'));
+                        });
+                });
+
+                // Limpa modal ao fechar
+                $('#detalhesModal').on('hidden.bs.modal', function () {
+                    $('#detalhesPerfil').empty();
+                    $('#permissoesContainer').empty().hide();
+                    $('#btnSalvar').addClass('d-none');
+                    $('#btnEditar').removeClass('d-none');
+                    permissoesPerfilAtual = [];
+                });
+
+                ///////////////FIM EDITAR///////////////////////
+
+                ///////////////EXCLUIR///////////////////////
+                $('#tabela-perfis').on('click', '.btn-excluir', function () {
+                    const id = $(this).data('id');
+                    const nome = $(this).data('nome');
+                    excluirPerfil(id, nome);
+                });
+
+                function excluirPerfil(id, nome) {
+                    if (id == 1) {
+                        showErrorModal("Não é permitido excluir o perfil ADMINISTRADOR!");
+                        return;
+                    }
+
+                    $('#nomeExclui').text(nome);
+                    $('#confirmacaoExclusaoModal').modal('show');
+
+                    $('#confirmarExclusao').off('click').on('click', function () {
+                        req_DELETE(opt.urlPerfis + "/" + id).then((result) => {
+                            if (!result.success) {
+                                let errorMessage = (result.message || 'Erro desconhecido.');
+                                showErrorModal(errorMessage);
+                                return;
+                            }
+
+                            $('#confirmacaoExclusaoModal').modal('hide');
+                            showSuccessMessage('Perfil excluído com sucesso!');
+                            alterado = 1;
+                        }).catch(error => {
+                            showErrorModal('Erro de comunicação: ' + (error.message || 'Erro desconhecido.'));
+                        });
+                    });
+                }
+
+                // FUNÇÕES AUXILIARES
+                $('.modal').on('hidden.bs.modal', function () {
+                    if (alterado !== 0) {
+                        req_GET(opt.urlPerfis).then((res) => {
+                            let data = res.data;
+                            if (data && table) {
+                                table.clear().rows.add(data).draw();
+                            } else {
+                                console.error("Erro: Dados ou tabela não encontrados.");
+                            }
+                            alterado = 0;
+                        }).catch((error) => {
+                            console.error("Erro ao fazer a requisição:", error);
+                        });
+                    }
+                });
+
+            }).catch(error => {
+                showErrorModal('Erro ao carregar perfis: ' + (error.message || 'Erro desconhecido.'));
+            });
+
+        } catch (globalError) {
+            showErrorModal('Erro ao inicializar: ' + globalError.message);
+        }
+    });
+</script>

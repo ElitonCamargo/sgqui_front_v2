@@ -14,7 +14,12 @@ const opt = {
   "urlEtapa": `${urlApi}/etapa`,
   "urlEtapaMp": `${urlApi}/etapa_mp`,
   "urlConfig": `${urlApi}/configuracao`,
-  "usuario": `${urlApi}/usuario`
+  "usuario": `${urlApi}/usuario`,
+  "urlPerfis": `${urlApi}/rbac/perfis`,
+  "urlUsuarioPerfis": `${urlApi}/rbac/usuario_perfis`,
+  "urlPermissoes": `${urlApi}/rbac/permissoes`,
+  "urlPerfilPermissoes": `${urlApi}/rbac/perfil_permissoes`,
+  "urlTrocarPerfil": `${urlApi}/usuario/perfil/trocar`
 }
 
 

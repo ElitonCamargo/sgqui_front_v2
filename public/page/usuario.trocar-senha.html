@@ -1,0 +1,253 @@
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h2>Minha Conta</h2>
+            
+            <!-- Card Avatar -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fa-solid fa-user-circle me-2"></i>Avatar</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <img id="previewAvatar" src="/assets/img/default-avatar.png" alt="Avatar" 
+                             class="rounded-circle border" 
+                             style="width: 150px; height: 150px; object-fit: cover;">
+                    </div>
+                    <form id="formAvatarUsuario">
+                        <div class="mb-3">
+                            <label for="avatarInput" class="form-label">Escolher nova foto (JPG, PNG ou GIF)</label>
+                            <input type="file" class="form-control" id="avatarInput" name="avatar" 
+                                   accept="image/jpeg,image/png,image/gif">
+                            <small class="text-muted">Tamanho máximo: 200KB (será redimensionado para 200x200px)</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fa-solid fa-upload me-2"></i>Salvar Avatar
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Card Trocar Senha -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fa-solid fa-key me-2"></i>Alterar Senha</h5>
+                </div>
+                <div class="card-body">
+                    <form id="formTrocarSenha">
+                        <div class="mb-3">
+                            <label for="senhaNova" class="form-label">Nova Senha *</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="senhaNova" 
+                                       name="senha" required minlength="6">
+                                <button class="btn btn-outline-secondary" type="button" id="toggleSenhaNova">
+                                    <i class="fa fa-eye"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">Mínimo de 6 caracteres</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="senhaConfirma" class="form-label">Confirmar Nova Senha *</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="senhaConfirma" 
+                                       name="senhaConfirma" required minlength="6">
+                                <button class="btn btn-outline-secondary" type="button" id="toggleSenhaConfirma">
+                                    <i class="fa fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fa-solid fa-check me-2"></i>Alterar Senha
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(function() {
+        const sessionUs = getSessionData('us');
+        
+        if (!sessionUs || !sessionUs.id) {
+            showErrorModal('Sessão inválida. Faça login novamente.');
+            setTimeout(() => logoff(), 2000);
+            return;
+        }
+
+        // Carregar avatar atual
+        if (sessionUs.avatar) {
+            $('#previewAvatar').attr('src', sessionUs.avatar);
+        }
+
+        // Função para redimensionar imagem
+        function redimensionarImagem(file, maxWidth, maxHeight, quality) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height *= maxWidth / width;
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width *= maxHeight / height;
+                                height = maxHeight;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        canvas.toBlob((blob) => {
+                            if (blob.size > 500 * 1024 && quality > 0.1) {
+                                redimensionarImagem(file, maxWidth, maxHeight, quality - 0.1)
+                                    .then(resolve)
+                                    .catch(reject);
+                            } else {
+                                const reader2 = new FileReader();
+                                reader2.onloadend = () => resolve(reader2.result);
+                                reader2.onerror = reject;
+                                reader2.readAsDataURL(blob);
+                            }
+                        }, file.type, quality);
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Preview do avatar ao selecionar arquivo
+        $('#avatarInput').on('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                if (!validTypes.includes(file.type)) {
+                    showErrorModal('Formato inválido. Use JPG, PNG ou GIF.');
+                    $(this).val('');
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    showErrorModal('Arquivo muito grande. Máximo: 5MB.');
+                    $(this).val('');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#previewAvatar').attr('src', e.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Submit avatar
+        $('#formAvatarUsuario').on('submit', function(e) {
+            e.preventDefault();
+            
+            const file = $('#avatarInput')[0].files[0];
+            if (!file) {
+                showErrorModal('Selecione uma imagem.');
+                return;
+            }
+
+            showPreload();
+
+            redimensionarImagem(file, 800, 800, 0.8)
+                .then(base64 => {
+                    const payload = { avatar: base64 };
+                    return req_UPDATE(`${opt.urlUsuario}/${sessionUs.id}`, payload);
+                })
+                .then(result => {
+                    hidePreload();
+                    if (result.success) {
+                        const avatarUrl = result.data.avatar || result.data[0].avatar;
+                        sessionUs.avatar = avatarUrl;
+                        setSessionData('us', sessionUs);
+                        $('#userAvatar').attr('src', avatarUrl);
+                        showToast('Avatar atualizado com sucesso!', 'success');
+                        $('#avatarInput').val('');
+                    } else {
+                        showErrorModal(result.message || 'Erro ao salvar avatar.');
+                    }
+                })
+                .catch(error => {
+                    hidePreload();
+                    showErrorModal('Erro: ' + error.message);
+                });
+        });
+
+        // Toggle senha nova
+        $('#toggleSenhaNova').on('click', function() {
+            const input = $('#senhaNova');
+            const icon = $(this).find('i');
+            if (input.attr('type') === 'password') {
+                input.attr('type', 'text');
+                icon.removeClass('fa-eye').addClass('fa-eye-slash');
+            } else {
+                input.attr('type', 'password');
+                icon.removeClass('fa-eye-slash').addClass('fa-eye');
+            }
+        });
+
+        // Toggle confirmar senha
+        $('#toggleSenhaConfirma').on('click', function() {
+            const input = $('#senhaConfirma');
+            const icon = $(this).find('i');
+            if (input.attr('type') === 'password') {
+                input.attr('type', 'text');
+                icon.removeClass('fa-eye').addClass('fa-eye-slash');
+            } else {
+                input.attr('type', 'password');
+                icon.removeClass('fa-eye-slash').addClass('fa-eye');
+            }
+        });
+
+        // Submit trocar senha
+        $('#formTrocarSenha').on('submit', function(e) {
+            e.preventDefault();
+
+            const senhaNova = $('#senhaNova').val();
+            const senhaConfirma = $('#senhaConfirma').val();
+
+            if (senhaNova !== senhaConfirma) {
+                showErrorModal('As senhas não conferem.');
+                return;
+            }
+
+            if (senhaNova.length < 6) {
+                showErrorModal('A nova senha deve ter no mínimo 6 caracteres.');
+                return;
+            }
+
+            const payload = { senha: senhaNova };
+
+            req_UPDATE(`${opt.urlUsuario}/${sessionUs.id}`, payload)
+                .then(result => {
+                    if (result.success) {
+                        showToast('Senha alterada com sucesso!', 'success');
+                        $('#formTrocarSenha')[0].reset();
+                    } else {
+                        showErrorModal(result.message || 'Erro ao alterar senha.');
+                    }
+                })
+                .catch(error => {
+                    showErrorModal('Erro de comunicação: ' + error.message);
+                });
+        });
+    });
+</script>

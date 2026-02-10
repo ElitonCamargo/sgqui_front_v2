@@ -24,6 +24,13 @@
       </div>
     </div>
 
+    <div class="col-md-4">
+      <label class="form-label">Perfis</label>
+      <div id="perfisCadastroContainer" class="border rounded p-2" style="max-height: 220px; overflow-y: auto;">
+        <!-- Checkboxes serão carregados aqui -->
+      </div>
+    </div>
+
   </div>
   <button class="btn btn-primary" type="submit" id="usuarioCadastrar">Cadastrar</button>
 </form>
@@ -54,26 +61,69 @@
 
       event.preventDefault(); // Impedir o envio padrão do formulário
       const jsonData = serializadoParaJSON($(this).serialize());
+      const perfilIds = getPerfisSelecionadosCadastro();
+
+      delete jsonData.perfilIds;
 
       req_INSERT(opt.usuario, jsonData).then(result => {
-
         if (!result.success) {
           // Tratamento de erro
           let errorMessage;
           errorMessage = `${result.message || 'Erro desconhecido.'}`;
           // Usa a função showErrorModal para mostrar o erro
           showErrorModal(errorMessage);
-          return;
+          return Promise.reject(new Error(errorMessage));
         }
-        $('#confirmacaoCadastroModal .modal-body').html(`<b>${result.data[0].nome}</b> cadastrado com sucesso!`);
+
+        const usuario = Array.isArray(result.data) ? result.data[0] : result.data;
+        const usuarioId = usuario && usuario.id ? usuario.id : null;
+
+        if (usuarioId && perfilIds.length > 0) {
+          return Promise.all(
+            perfilIds.map(perfilId => req_POST(opt.urlUsuarioPerfis, { usuarioId, perfilId }))
+          ).then(() => usuario);
+        }
+
+        return usuario;
+      }).then(usuario => {
+        if (!usuario) return;
+        $('#confirmacaoCadastroModal .modal-body').html(`<b>${usuario.nome}</b> cadastrado com sucesso!`);
         $('#confirmacaoCadastroModal').modal('show');
-        $(this)[0].reset();
+        $('#formCadastrarUsuario')[0].reset();
       }).catch(error => {
         // Tratamento de erro de rede ou erro inesperado
         showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
       });
     });
 
+    function getPerfisSelecionadosCadastro() {
+      return $('#perfisCadastroContainer .perfil-checkbox:checked')
+        .map((_, el) => parseInt($(el).val(), 10))
+        .get();
+    }
+
+    function carregarPerfisCadastro() {
+      req_GET(opt.urlPerfis).then(result => {
+        if (!result.success) {
+          showErrorModal(result.message || 'Erro ao carregar perfis.');
+          return;
+        }
+        const container = $('#perfisCadastroContainer').empty();
+        (result.data || []).forEach(p => {
+          const item = $(`
+            <div class="form-check">
+              <input class="form-check-input perfil-checkbox" type="checkbox" id="perfil_cad_${p.id}" value="${p.id}">
+              <label class="form-check-label" for="perfil_cad_${p.id}">${p.nome}</label>
+            </div>
+          `);
+          container.append(item);
+        });
+      }).catch(error => {
+        showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+      });
+    }
+
+    carregarPerfisCadastro();
 
     $('#togglePassword').on('click', function () {
       let passwordField = $('#senha');

@@ -6,8 +6,29 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav" id="navbar-menu">
+            <ul class="navbar-nav me-auto" id="navbar-menu">
                 <!-- O conteúdo do menu será inserido aqui pelo JavaScript -->
+            </ul>
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img id="userAvatar" src="/assets/img/default-avatar.png" alt="Avatar" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                        <span id="userName">Usuário</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li class="px-3 py-2">
+                            <label class="form-label small mb-1">Perfil Ativo:</label>
+                            <select id="perfilAtivoSelect" class="form-select form-select-sm">
+                                <option value="">Carregando...</option>
+                            </select>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        
+                        <li><a class="dropdown-item" href="/usuario/trocar-senha"><i class="fa-solid fa-key me-2"></i>Trocar Senha</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="javascript:logoff()"><i class="fa-solid fa-right-from-bracket me-2"></i>Sair</a></li>
+                    </ul>
+                </li>
             </ul>
         </div>
     </div>
