@@ -15,9 +15,11 @@
     <table id="tabela-usuario" class="table table-striped table-bordered">
         <thead>
             <tr>
-                <th></th>
-                <th></th>
-                <th></th>
+                <th>Avatar</th>
+                <th>Nome</th>
+                <th>Login</th>
+                <th>Perfis</th>
+                <th>Ações</th>
                 <th></th>
             </tr>
         </thead>
@@ -97,65 +99,112 @@
 
             data = result.data;
 
-            // INICIA DATATABLE
-            table = $('#tabela-usuario').DataTable({
-                data: data,
-                order: [[3, 'desc']],
-                columns: [
-                    { title: 'Nome', data: 'nome' },
-                    { title: 'Login', data: 'email' },
-                    { // Coluna para os botões de ação
-                        title: 'Ações',
-                        data: null,
-                        orderable: false,
+            const normalizarPerfis = (res) => {
+                const payload = res && res.data;
+                if (Array.isArray(payload)) return payload;
+                if (payload && Array.isArray(payload.perfis)) return payload.perfis;
+                if (payload && payload.perfil) return [payload.perfil];
+                return [];
+            };
 
-                        render: function (data, type, row) {
-                            return `
-                          <button class="btn btn-outline-secondary btn-sm btn-detalhes-editar" data-id="${row.id}" data-toggle="modal" data-target="#detalhesModal" title="Ver/Editar"><i class="fa-solid fa-eye"></i>/<i class="fa-solid fa-pen-to-square"></i></button>
-                          <button class="btn btn-outline-secondary btn-sm btn-excluir" data-id="${row.id}" data-nome="${row.nome}" title="Excluir"><i class="fa-solid fa-ban"></i></button>
-                      `;
-                        }
-                    },
-                    { title: 'Update', data: 'updatedAt', visible: false }
-                ],
-                columnDefs: [
-                    { targets: 2, autoWidth: true } // Ativa o ajuste automático da largura para a coluna ações
-                ],
-                // Habilita a pesquisa global
-                searching: true
-            });
-            //FIM DATATABLE
+            const carregarPerfisUsuarios = (usuarios) => {
+                const lista = usuarios || [];
+                return Promise.all(lista.map(usuario => {
+                    return req_GET(`${opt.urlUsuarioPerfis}/usuario/${usuario.id}/perfis/`)
+                        .then(res => {
+                            const perfis = normalizarPerfis(res);
+                            const nomes = perfis.map(p => p.nome).filter(Boolean);
+                            return { ...usuario, perfisNomes: nomes.join(', ') };
+                        })
+                        .catch(() => ({ ...usuario, perfisNomes: '' }));
+                }));
+            };
+
+            carregarPerfisUsuarios(data).then((usuariosComPerfis) => {
+                data = usuariosComPerfis;
+
+                // INICIA DATATABLE
+                table = $('#tabela-usuario').DataTable({
+                    data: data,
+                    order: [[5, 'desc']],
+                    columns: [
+                        {
+                            title: 'Avatar',
+                            data: 'avatar',
+                            orderable: false,
+                            render: function (data, type, row) {
+                                const safeAlt = (row && row.nome) ? row.nome : 'Avatar';
+                                const src = data || AVATAR_DEFAULT_SRC;
+                                return `
+                                                                    <img src="${src}" alt="${safeAlt}" class="rounded-circle border" style="width: 36px; height: 36px; object-fit: cover;">
+                                `;
+                            }
+                        },
+                        { title: 'Nome', data: 'nome' },
+                        { title: 'Login', data: 'email' },
+                        { title: 'Perfis', data: 'perfisNomes' },
+                        { // Coluna para os botões de ação
+                            title: 'Ações',
+                            data: null,
+                            orderable: false,
+
+                            render: function (data, type, row) {
+                                return `
+                              <button class="btn btn-outline-secondary btn-sm btn-detalhes-editar" data-id="${row.id}" data-toggle="modal" data-target="#detalhesModal" title="Ver/Editar"><i class="fa-solid fa-eye"></i>/<i class="fa-solid fa-pen-to-square"></i></button>
+                              <button class="btn btn-outline-secondary btn-sm btn-excluir" data-id="${row.id}" data-nome="${row.nome}" title="Excluir"><i class="fa-solid fa-ban"></i></button>
+                          `;
+                            }
+                        },
+                        { title: 'Update', data: 'updatedAt', visible: false }
+                    ],
+                    columnDefs: [
+                        { targets: 4, autoWidth: true } // Ativa o ajuste automático da largura para a coluna ações
+                    ],
+                    // Habilita a pesquisa global
+                    searching: true
+                });
+                //FIM DATATABLE
 
 
 
-            // Adiciona campos de pesquisa em cada cabeçalho de coluna
-            $('#tabela-usuario thead th').each(function () {
-                let title = $(this).text();
-                if (title !== "Ações") {
-                    $(this).html(`<input type="text" class="form-control form-control-sm" placeholder="${title} "/>`);
-                }
-            });
+                // Adiciona campos de pesquisa em cada cabeçalho de coluna
+                $('#tabela-usuario thead th').each(function () {
+                    let title = $(this).text();
+                    if (title !== "Ações" && title !== "Avatar") {
+                        $(this).html(`<input type="text" class="form-control form-control-sm" placeholder="${title} "/>`);
+                    }
+                });
 
-            // Adiciona um evento de pesquisa para cada campo de entrada de texto nas colunas
-            $('#tabela-usuario thead th input').on('keyup', function () {
-                let columnIndex = $(this).closest('th').index(); // Obtém o índice da coluna
-                table.column(columnIndex).search(this.value).draw();
-            });
-
-
-            ///////////////EDITAR///////////////////////
-            //Abre modal de visualização e edição de usuario
-            $('#tabela-usuario').on('click', '.btn-detalhes-editar', function () {
-                const id = $(this).data('id');
-                const usuario = data.find(item => item.id === id);
-                exibirDetalhes(usuario);
-            });
+                // Adiciona um evento de pesquisa para cada campo de entrada de texto nas colunas
+                $('#tabela-usuario thead th input').on('keyup', function () {
+                    let columnIndex = $(this).closest('th').index(); // Obtém o índice da coluna
+                    table.column(columnIndex).search(this.value).draw();
+                });
 
 
-            // Função para exibir os detalhes em um modal
-            function exibirDetalhes(usuario) {
-                let html = `
+                ///////////////EDITAR///////////////////////
+                //Abre modal de visualização e edição de usuario
+                $('#tabela-usuario').on('click', '.btn-detalhes-editar', function () {
+                    const id = $(this).data('id');
+                    const usuario = data.find(item => item.id === id);
+                    exibirDetalhes(usuario);
+                });
+
+
+                // Função para exibir os detalhes em um modal
+                function exibirDetalhes(usuario) {
+                    const avatarSrc = usuario.avatar ? usuario.avatar : AVATAR_DEFAULT_SRC;
+                    let html = `
                 <div class="form-group">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label">Avatar:</label>
+                                            <div class="mb-2">
+                                                <img id="previewAvatarEdit" src="${avatarSrc}" alt="Avatar" class="rounded-circle border" style="width: 80px; height: 80px; object-fit: cover;">
+                                            </div>
+                                            <input type="file" class="form-control" id="avatarInputEdit" name="avatar"
+                                                accept="image/jpeg,image/png,image/gif" disabled>
+                                            <small class="text-muted">Tamanho maximo: 5MB (sera redimensionado para 100x100px)</small>
+                                        </div>
                     <div class="form-group">
                       <label for="nome">Nome:</label>
                       <input type="text" class="form-control" id="nome" name="nome" value="${usuario.nome}" readonly>
@@ -178,195 +227,222 @@
                 </div>
                  `;
 
-                $('#detalhesUsuario').html(html);
-                $('#detalhesModal').modal('show');
+                    $('#detalhesUsuario').html(html);
+                    $('#detalhesModal').modal('show');
+                    configurarPreviewAvatar('#avatarInputEdit', '#previewAvatarEdit');
 
-                carregarVinculoUsuario(usuario.id).then(({ vinculos, perfilIds }) => {
-                    vinculosAtuais = vinculos;
-                    return carregarPerfisEdicao(perfilIds);
-                }).catch(error => {
-                    showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
-                });
-            }
+                    carregarVinculoUsuario(usuario.id).then(({ vinculos, perfilIds }) => {
+                        vinculosAtuais = vinculos;
+                        return carregarPerfisEdicao(perfilIds);
+                    }).catch(error => {
+                        showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                    });
+                }
 
-            function carregarPerfisEdicao(selectedIds) {
-                return req_GET(opt.urlPerfis).then(result => {
-                    if (!result.success) {
-                        showErrorModal(result.message || 'Erro ao carregar perfis.');
-                        return;
-                    }
+                function carregarPerfisEdicao(selectedIds) {
+                    return req_GET(opt.urlPerfis).then(result => {
+                        if (!result.success) {
+                            showErrorModal(result.message || 'Erro ao carregar perfis.');
+                            return;
+                        }
 
-                    const container = $('#perfisEditContainer').empty();
-                    const selecionados = new Set((selectedIds || []).map(String));
-                    (result.data || []).forEach(p => {
-                        const checked = selecionados.has(String(p.id)) ? 'checked' : '';
-                        const item = $(`
+                        const container = $('#perfisEditContainer').empty();
+                        const selecionados = new Set((selectedIds || []).map(String));
+                        (result.data || []).forEach(p => {
+                            const checked = selecionados.has(String(p.id)) ? 'checked' : '';
+                            const item = $(`
                   <div class="form-check">
                     <input class="form-check-input perfil-checkbox-edit" type="checkbox" id="perfil_edit_${p.id}" value="${p.id}" ${checked}>
                     <label class="form-check-label" for="perfil_edit_${p.id}">${p.nome}</label>
                   </div>
                 `);
-                        container.append(item);
+                            container.append(item);
+                        });
                     });
+                }
+
+                function getPerfisSelecionadosEdicao() {
+                    return $('#perfisEditContainer .perfil-checkbox-edit:checked')
+                        .map((_, el) => String($(el).val()))
+                        .get();
+                }
+
+                function carregarVinculoUsuario(usuarioId) {
+                    return req_GET(opt.urlUsuarioPerfis + '/usuario/' + usuarioId + '/perfis/').then(result => {
+                        const data = result && result.data;
+                        if (!result.success) {
+                            return { vinculos: [], perfilIds: [] };
+                        }
+
+                        let items = [];
+                        if (Array.isArray(data)) items = data;
+                        else if (data && Array.isArray(data.perfis)) items = data.perfis;
+                        else if (data && data.perfil) items = [data.perfil];
+
+                        const vinculos = items.map(v => ({
+                            vinculoId: v.id || v.vinculoId || v.vinculo_id || v.usuarioPerfilId || v.usuario_perfil_id || '',
+                            perfilId: v.perfilId || (v.perfil && v.perfil.id) || v.id_perfil || v.id || ''
+                        })).filter(v => v.perfilId);
+
+                        return { vinculos, perfilIds: vinculos.map(v => String(v.perfilId)) };
+                    });
+                }
+
+
+                // Adicionar evento de clique para o botão "Editar"
+                $('#detalhesModal').on('click', '#btnEditar', function () {
+                    $('.form-control').prop('readonly', false);
+                    $('#perfisEditContainer .perfil-checkbox-edit').prop('disabled', false);
+                    $('#avatarInputEdit').prop('disabled', false);
+                    $('#btnEditar').addClass('d-none');
+                    $('#btnSalvar').removeClass('d-none');
                 });
-            }
 
-            function getPerfisSelecionadosEdicao() {
-                return $('#perfisEditContainer .perfil-checkbox-edit:checked')
-                    .map((_, el) => String($(el).val()))
-                    .get();
-            }
+                // Adicionar evento de submit para o formulário de edição do usuario
+                $('#formEditarUsuario').on('submit', function (event) {
 
-            function carregarVinculoUsuario(usuarioId) {
-                return req_GET(opt.urlUsuarioPerfis + '/usuario/' + usuarioId + '/perfis/').then(result => {
-                    const data = result && result.data;
-                    if (!result.success) {
-                        return { vinculos: [], perfilIds: [] };
+                    event.preventDefault(); // Impedir o envio padrão do formulário
+                    const jsonData = serializadoParaJSON($(this).serialize());
+
+                    if (!jsonData.senha || String(jsonData.senha).trim() === '') {
+                        delete jsonData.senha;
                     }
 
-                    let items = [];
-                    if (Array.isArray(data)) items = data;
-                    else if (data && Array.isArray(data.perfis)) items = data.perfis;
-                    else if (data && data.perfil) items = [data.perfil];
+                    const usuarioId = parseInt(jsonData.id, 10);
+                    const selecionados = getPerfisSelecionadosEdicao();
+                    const avatarFile = $('#avatarInputEdit')[0] ? $('#avatarInputEdit')[0].files[0] : null;
 
-                    const vinculos = items.map(v => ({
-                        vinculoId: v.id || v.vinculoId || v.vinculo_id || v.usuarioPerfilId || v.usuario_perfil_id || '',
-                        perfilId: v.perfilId || (v.perfil && v.perfil.id) || v.id_perfil || v.id || ''
-                    })).filter(v => v.perfilId);
+                    delete jsonData.perfilIdsEdit;
+                    delete jsonData.perfilVinculoId;
+                    delete jsonData.perfilAtualId;
 
-                    return { vinculos, perfilIds: vinculos.map(v => String(v.perfilId)) };
-                });
-            }
+                    const atuaisIds = new Set(vinculosAtuais.map(v => String(v.perfilId)));
+                    const selecionadosSet = new Set(selecionados);
 
+                    const paraRemover = vinculosAtuais.filter(v => !selecionadosSet.has(String(v.perfilId)) && v.vinculoId);
+                    const paraAdicionar = selecionados.filter(id => !atuaisIds.has(String(id)));
 
-            // Adicionar evento de clique para o botão "Editar"
-            $('#detalhesModal').on('click', '#btnEditar', function () {
-                $('.form-control').prop('readonly', false);
-                $('#perfisEditContainer .perfil-checkbox-edit').prop('disabled', false);
-                $('#btnEditar').addClass('d-none');
-                $('#btnSalvar').removeClass('d-none');
-            });
+                    const prepararAvatar = avatarFile ? obterAvatarBase64(avatarFile) : Promise.resolve(null);
 
-            // Adicionar evento de submit para o formulário de edição do usuario
-            $('#formEditarUsuario').on('submit', function (event) {
-
-                event.preventDefault(); // Impedir o envio padrão do formulário
-                const jsonData = serializadoParaJSON($(this).serialize());
-
-                if (!jsonData.senha || String(jsonData.senha).trim() === '') {
-                    delete jsonData.senha;
-                }
-
-                const usuarioId = parseInt(jsonData.id, 10);
-                const selecionados = getPerfisSelecionadosEdicao();
-
-                delete jsonData.perfilIdsEdit;
-                delete jsonData.perfilVinculoId;
-                delete jsonData.perfilAtualId;
-
-                const atuaisIds = new Set(vinculosAtuais.map(v => String(v.perfilId)));
-                const selecionadosSet = new Set(selecionados);
-
-                const paraRemover = vinculosAtuais.filter(v => !selecionadosSet.has(String(v.perfilId)) && v.vinculoId);
-                const paraAdicionar = selecionados.filter(id => !atuaisIds.has(String(id)));
-
-                req_UPDATE(opt.urlUsuario + "/" + jsonData.id, jsonData)
-                    .then(result => {
-                        if (!result.success) {
-                            // Tratamento de erro
-                            let errorMessage;
-                            errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                            // Usa a função showErrorModal para mostrar o erro
-                            showErrorModal(errorMessage);
-                            return;
+                    prepararAvatar.then((base64) => {
+                        if (base64) {
+                            jsonData.avatar = base64;
                         }
-
-                        const desvincular = Promise.all(
-                            paraRemover.map(v => req_DELETE(opt.urlUsuarioPerfis + "/" + v.vinculoId))
-                        );
-
-                        const vincular = paraAdicionar.length
-                            ? Promise.all(paraAdicionar.map(perfilId => req_POST(opt.urlUsuarioPerfis, { usuarioId, perfilId: parseInt(perfilId, 10) })))
-                            : Promise.resolve();
-
-                        return desvincular.then(() => vincular);
+                        return req_UPDATE(opt.urlUsuario + "/" + jsonData.id, jsonData);
                     })
-                    .then(() => {
-                        // Fecha o modal de confirmação de exclusão
-                        $('#confirmacaoExclusaoModal').modal('hide');
-                        alterado = 1;
-                    }).catch(error => {
-                        // Tratamento de erro de rede ou erro inesperado
-                        showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
-                    });
-            });
+                        .then(result => {
+                            if (!result.success) {
+                                // Tratamento de erro
+                                let errorMessage;
+                                errorMessage = `${result.message || 'Erro desconhecido.'}`;
+                                // Usa a função showErrorModal para mostrar o erro
+                                showErrorModal(errorMessage);
+                                return;
+                            }
 
-            //Limpa modal ao fechar
-            $('#detalhesModal').on('hidden.bs.modal', function () {
-                $('#detalhesUsuario').empty(); // Limpar o conteúdo do usuario com id 'detalhesUsuario'
-                $('#btnSalvar').addClass('d-none'); // Ocultar o botão "Salvar"
-                $('#btnEditar').removeClass('d-none'); // Exibir o botão "Editar"
-            });
-            ///////////////FIM EDITAR///////////////////////
+                            const sessionUs = getSessionData('us');
+                            if (sessionUs && String(sessionUs.id) === String(jsonData.id)) {
+                                const payload = Array.isArray(result.data) ? result.data[0] : result.data || {};
+                                if (payload.avatar) {
+                                    sessionUs.avatar = payload.avatar;
+                                    $('#userAvatar').attr('src', payload.avatar);
+                                }
+                                if (payload.nome) {
+                                    sessionUs.nome = payload.nome;
+                                    $('#userName').text(payload.nome);
+                                }
+                                setSessionData('us', sessionUs);
+                            }
 
-            ///////////////EXCLUIR///////////////////////
-            // Adicionar evento de clique para o botão "Excluir"
-            $('#tabela-usuario').on('click', '.btn-excluir', function () {
-                const id = $(this).data('id');
-                const nome = $(this).data('nome');
-                // Faça algo com o ID, como confirmar a exclusão do usuario
-                excluirUsuario(id, nome);
-            });
+                            const desvincular = Promise.all(
+                                paraRemover.map(v => req_DELETE(opt.urlUsuarioPerfis + "/" + v.vinculoId))
+                            );
 
-            function excluirUsuario(id, nome) {
+                            const vincular = paraAdicionar.length
+                                ? Promise.all(paraAdicionar.map(perfilId => req_POST(opt.urlUsuarioPerfis, { usuarioId, perfilId: parseInt(perfilId, 10) })))
+                                : Promise.resolve();
 
-                if (id == 1) {
-                    showErrorModal("Não é permitido excluir este usuário!");
-                    return;
-                }
-                // Exibe o modal de confirmação de exclusão com o nome do item
-                $('#nomeExclui').text(nome);
-                $('#confirmacaoExclusaoModal').modal('show');
-
-                // Evento ao clicar no botão "Confirmar Exclusão" no modal de confirmação
-                $('#confirmarExclusao').on('click', function () {
-
-                    req_DELETE(opt.urlUsuario + "/" + id).then((response) => {
-                        if (!result.success) {
-                            // Tratamento de erro
-                            let errorMessage;
-                            errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                            // Usa a função showErrorModal para mostrar o erro
-                            showErrorModal(errorMessage);
-                            return;
-                        }
-                        // Fecha o modal de confirmação de exclusão
-                        $('#confirmacaoExclusaoModal').modal('hide');
-                        alterado = 1;
-                    }).catch(error => {
-                        // Tratamento de erro de rede ou erro inesperado
-                        showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
-                    });
+                            return desvincular.then(() => vincular);
+                        })
+                        .then(() => {
+                            showToast('Usuário atualizado com sucesso!', 'success');
+                            $('#detalhesModal').modal('hide');
+                            alterado = 1;
+                        }).catch(error => {
+                            // Tratamento de erro de rede ou erro inesperado
+                            showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                        });
                 });
-            }
 
-            // FUNCOES AUXILIARES
-            // FUNÇÕES AUXILIARES
-            $('.modal').on('hidden.bs.modal', function () {
-                if (alterado !== 0) {
-                    req_GET(opt.urlUsuario).then((res) => {
-                        let data = res.data; // Certifique-se de que 'data' está na resposta correta
-                        if (data && table) {
-                            table.clear().rows.add(data).draw(); // Limpa a tabela, adiciona os novos dados e redesenha
-                        } else {
-                            console.error("Erro: Dados ou tabela não encontrados.");
-                        }
-                    }).catch((error) => {
-                        console.error("Erro ao fazer a requisição:", error);
+                //Limpa modal ao fechar
+                $('#detalhesModal').on('hidden.bs.modal', function () {
+                    $('#detalhesUsuario').empty(); // Limpar o conteúdo do usuario com id 'detalhesUsuario'
+                    $('#btnSalvar').addClass('d-none'); // Ocultar o botão "Salvar"
+                    $('#btnEditar').removeClass('d-none'); // Exibir o botão "Editar"
+                });
+                ///////////////FIM EDITAR///////////////////////
+
+                ///////////////EXCLUIR///////////////////////
+                // Adicionar evento de clique para o botão "Excluir"
+                $('#tabela-usuario').on('click', '.btn-excluir', function () {
+                    const id = $(this).data('id');
+                    const nome = $(this).data('nome');
+                    // Faça algo com o ID, como confirmar a exclusão do usuario
+                    excluirUsuario(id, nome);
+                });
+
+                function excluirUsuario(id, nome) {
+
+                    if (id == 1) {
+                        showErrorModal("Não é permitido excluir este usuário!");
+                        return;
+                    }
+                    // Exibe o modal de confirmação de exclusão com o nome do item
+                    $('#nomeExclui').text(nome);
+                    $('#confirmacaoExclusaoModal').modal('show');
+
+                    // Evento ao clicar no botão "Confirmar Exclusão" no modal de confirmação
+                    $('#confirmarExclusao').on('click', function () {
+
+                        req_DELETE(opt.urlUsuario + "/" + id).then((response) => {
+                            if (!result.success) {
+                                // Tratamento de erro
+                                let errorMessage;
+                                errorMessage = `${result.message || 'Erro desconhecido.'}`;
+                                // Usa a função showErrorModal para mostrar o erro
+                                showErrorModal(errorMessage);
+                                return;
+                            }
+                            // Fecha o modal de confirmação de exclusão
+                            $('#confirmacaoExclusaoModal').modal('hide');
+                            alterado = 1;
+                        }).catch(error => {
+                            // Tratamento de erro de rede ou erro inesperado
+                            showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                        });
                     });
                 }
-            });
 
+                // FUNCOES AUXILIARES
+                // FUNÇÕES AUXILIARES
+                $('.modal').on('hidden.bs.modal', function () {
+                    if (alterado !== 0) {
+                        req_GET(opt.urlUsuario).then((res) => {
+                            let data = res.data; // Certifique-se de que 'data' está na resposta correta
+                            if (data && table) {
+                                carregarPerfisUsuarios(data).then((usuariosComPerfis) => {
+                                    table.clear().rows.add(usuariosComPerfis).draw();
+                                });
+                            } else {
+                                console.error("Erro: Dados ou tabela não encontrados.");
+                            }
+                        }).catch((error) => {
+                            console.error("Erro ao fazer a requisição:", error);
+                        });
+                    }
+                });
+
+            });
         })
     })
 </script>

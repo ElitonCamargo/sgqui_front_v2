@@ -1,7 +1,7 @@
 $(function () {
     $.extend(true, $.fn.dataTable.defaults, {
         pagingType: 'simple_numbers',
-        "pageLength": 5,
+        "pageLength": 10,
         "lengthMenu": [[5,10, 50, 100, 500, -1], [5,10, 50, 100, 500, "Todos"]],
         language: {
             buttons: {

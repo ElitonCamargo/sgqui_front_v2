@@ -277,6 +277,121 @@ const showErrorModal = (errorMessage) => {
     });
 };
 
+const AVATAR_DEFAULT_SRC = '/assets/img/user-default.png';
+
+const validarArquivoAvatar = (file, options = {}) => {
+    const validTypes = options.validTypes || ['image/jpeg', 'image/png', 'image/gif'];
+    const maxSizeMB = options.maxSizeMB || 5;
+
+    if (!file) {
+        return { ok: false, message: 'Selecione uma imagem.' };
+    }
+
+    if (!validTypes.includes(file.type)) {
+        return { ok: false, message: 'Formato inválido. Use JPG, PNG ou GIF.' };
+    }
+
+    if (file.size > maxSizeMB * 1024 * 1024) {
+        return { ok: false, message: `Arquivo muito grande. Máximo: ${maxSizeMB}MB.` };
+    }
+
+    return { ok: true };
+};
+
+const lerArquivoComoDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+});
+
+const redimensionarImagem = (file, maxWidth, maxHeight, quality) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width *= maxHeight / height;
+                    height = maxHeight;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob((blob) => {
+                if (blob.size > 40 * 1024 && quality > 0.1) {
+                    redimensionarImagem(file, maxWidth, maxHeight, quality - 0.1)
+                        .then(resolve)
+                        .catch(reject);
+                } else {
+                    const reader2 = new FileReader();
+                    reader2.onloadend = () => resolve(reader2.result);
+                    reader2.onerror = reject;
+                    reader2.readAsDataURL(blob);
+                }
+            }, file.type, quality);
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+});
+
+const obterAvatarBase64 = (file, options = {}) => {
+    const validacao = validarArquivoAvatar(file, options);
+    if (!validacao.ok) {
+        return Promise.reject(new Error(validacao.message));
+    }
+
+    const maxWidth = options.maxWidth || 100;
+    const maxHeight = options.maxHeight || 100;
+    const quality = options.quality || 0.8;
+    const maxBase64Length = options.maxBase64Length || 64000;
+
+    return redimensionarImagem(file, maxWidth, maxHeight, quality).then((base64) => {
+        if (base64.length > maxBase64Length) {
+            throw new Error('Imagem muito grande para o campo TEXT do MySQL. Tente outra imagem.');
+        }
+        return base64;
+    });
+};
+
+const configurarPreviewAvatar = (inputSelector, previewSelector, options = {}) => {
+    const fallbackSrc = options.defaultSrc || AVATAR_DEFAULT_SRC;
+    $(document).off('change', inputSelector).on('change', inputSelector, function (e) {
+        const file = e.target.files[0];
+        if (!file) {
+            $(previewSelector).attr('src', fallbackSrc);
+            return;
+        }
+
+        const validacao = validarArquivoAvatar(file, options);
+        if (!validacao.ok) {
+            showErrorModal(validacao.message);
+            $(this).val('');
+            return;
+        }
+
+        lerArquivoComoDataUrl(file).then((dataUrl) => {
+            $(previewSelector).attr('src', dataUrl);
+        });
+    });
+};
+
 //Função para criar uma sessão com dados
 const setSessionData = (key, value) => {
     sessionStorage.setItem(key, JSON.stringify(value));
@@ -682,8 +797,8 @@ async function inserirNomeLogado() {
             userNameElement.textContent = sessionUs.nome || 'Usuário';
         }
 
-        if (userAvatarElement && sessionUs.avatar) {
-            userAvatarElement.src = sessionUs.avatar;
+        if (userAvatarElement) {
+            userAvatarElement.src = sessionUs.avatar || AVATAR_DEFAULT_SRC;
         }
 
         await carregarPerfisUsuario(sessionUs.id);

@@ -82,13 +82,6 @@
             "icon": "fa-cogs",
             "text": "Configurações gerais do Sistema.",
             "buttonText": "Configurar"
-        },
-        {
-            "title": "Sair",
-            "url": "javascript:logoff()",
-            "icon": "fa-right-from-bracket",
-            "text": "Clique aqui para sair do sistema.",
-            "buttonText": "Logoff"
         }
     ]
 }

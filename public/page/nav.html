@@ -9,10 +9,10 @@
             <ul class="navbar-nav me-auto" id="navbar-menu">
                 <!-- O conteúdo do menu será inserido aqui pelo JavaScript -->
             </ul>
-            <ul class="navbar-nav ms-auto">
+            <ul class="navbar-nav ms-auto align-items-center">
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img id="userAvatar" src="/assets/img/default-avatar.png" alt="Avatar" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                        <img id="userAvatar" src="/assets/img/user-default.png" alt="Avatar" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
                         <span id="userName">Usuário</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
@@ -24,10 +24,13 @@
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         
-                        <li><a class="dropdown-item" href="/usuario/trocar-senha"><i class="fa-solid fa-key me-2"></i>Trocar Senha</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="javascript:logoff()"><i class="fa-solid fa-right-from-bracket me-2"></i>Sair</a></li>
+                        <li><a class="dropdown-item" href="/usuario/trocar-senha"><i class="fa-solid fa-key me-2"></i>Gerenciar conta</a></li>
                     </ul>
+                </li>
+                <li class="nav-item ms-2">
+                    <a class="btn btn-outline-secondary btn-sm" href="javascript:logoff()" title="Sair">
+                        <i class="fa-solid fa-right-from-bracket me-2"></i>Sair
+                    </a>
                 </li>
             </ul>
         </div>
