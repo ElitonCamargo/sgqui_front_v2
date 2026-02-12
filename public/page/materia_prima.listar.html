@@ -219,7 +219,7 @@
         event.preventDefault(); // Impedir o envio padrão do formulário
         const jsonData = serializadoParaJSON($(this).serialize());
 
-        req_UPDATE(opt.urlMateriaPrima + "/" + jsonData.id, jsonData)
+        req_PUT(opt.urlMateriaPrima + "/" + jsonData.id, jsonData)
           .then(result => {
 
             if (!result.success) {

@@ -135,7 +135,7 @@
         }
       });
 
-      req_INSERT(opt.urlProjeto, formObject).then(result => {
+      req_POST(opt.urlProjeto, formObject).then(result => {
 
         // Exibir resposta da API no console
         if (!result.success) {

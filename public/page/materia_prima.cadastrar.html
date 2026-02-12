@@ -71,12 +71,12 @@
       jsonData.densidade = jsonData.densidade.replace(/,/g, '.');
 
 
-      req_INSERT(opt.urlMateriaPrima, jsonData)
+      req_POST(opt.urlMateriaPrima, jsonData)
         .then(result => {
 
           if (!result.success) {
 
-            console.log(result)
+            // console.log(result)
             // Tratamento de erro
             let errorMessage;
             errorMessage = `${result.message || 'Erro desconhecido.'}`;

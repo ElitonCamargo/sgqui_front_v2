@@ -276,7 +276,7 @@
       });
     })();
 
-    console.log(listaDeElementosDoFiltro)
+    // console.log(listaDeElementosDoFiltro)
 
     // Função para a Inicialização do auto-complete *****************************************************************************
     let elemento_select = [];
@@ -592,7 +592,7 @@
         //   formObject['aplicacao'] = null;
         // }
 
-        req_UPDATE(opt.urlProjeto + "/" + jsonData.id, formObject)
+        req_PUT(opt.urlProjeto + "/" + jsonData.id, formObject)
           .then(result => {
 
             // Exibir resposta da API no console
@@ -646,7 +646,7 @@
     function clonarProjeto(id) {
 
       let urlClonar = opt.urlProjeto + "/" + id;
-      req_INSERT(urlClonar).then((result) => {
+      req_POST(urlClonar).then((result) => {
 
         if (!result.success) {
           // Tratamento de erro

@@ -85,7 +85,7 @@
         if (base64) {
           jsonData.avatar = base64;
         }
-        return req_INSERT(opt.usuario, jsonData);
+        return req_POST(opt.usuario, jsonData);
       }).then(result => {
         if (!result.success) {
           // Tratamento de erro

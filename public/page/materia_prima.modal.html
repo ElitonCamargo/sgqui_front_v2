@@ -155,7 +155,7 @@
 
         function cadastraGarantia(data) {
 
-            req_INSERT(opt.urlGarantia, data)
+            req_POST(opt.urlGarantia, data)
                 .then(result => {
                     if (!result.success) {
                         // Tratamento de erro

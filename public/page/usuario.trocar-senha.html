@@ -98,7 +98,7 @@
             obterAvatarBase64(file)
                 .then(base64 => {
                     const payload = { avatar: base64 };
-                    return req_UPDATE(`${opt.urlUsuario}/${sessionUs.id}`, payload);
+                    return req_PUT(`${opt.urlUsuario}/${sessionUs.id}`, payload);
                 })
                 .then(result => {
                     hidePreload();
@@ -164,7 +164,7 @@
 
             const payload = { senha: senhaNova };
 
-            req_UPDATE(`${opt.urlUsuario}/${sessionUs.id}`, payload)
+            req_PUT(`${opt.urlUsuario}/${sessionUs.id}`, payload)
                 .then(result => {
                     if (result.success) {
                         showToast('Senha alterada com sucesso!', 'success');

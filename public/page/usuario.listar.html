@@ -328,7 +328,7 @@
                         if (base64) {
                             jsonData.avatar = base64;
                         }
-                        return req_UPDATE(opt.urlUsuario + "/" + jsonData.id, jsonData);
+                        return req_PUT(opt.urlUsuario + "/" + jsonData.id, jsonData);
                     })
                         .then(result => {
                             if (!result.success) {

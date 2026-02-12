@@ -1,14 +1,17 @@
 {
-    "menu": [{
+    "menu": [
+        {
             "title": "Elementos",
             "url": "/elemento/listar",
             "icon": "fa-flask",
             "text": "Gerencie os elementos do sistema com facilidade.",
-            "buttonText": "Ver Elementos"
+            "buttonText": "Ver Elementos",
+            "key": "elemento:consultar"
         },
         {
             "title": "Nutrientes",
-            "dropdown": [{
+            "dropdown": [
+                {
                     "title": "Cadastrar",
                     "url": "/nutrientes/cadastrar"
                 },
@@ -19,11 +22,13 @@
             ],
             "icon": "fa-leaf",
             "text": "Adicione e visualize nutrientes no sistema.",
-            "buttonText": "Ver Nutrientes"
+            "buttonText": "Ver Nutrientes",
+            "key": "nutriente:consultar"
         },
         {
             "title": "Matéria Prima",
-            "dropdown": [{
+            "dropdown": [
+                {
                     "title": "Cadastrar",
                     "url": "/materia_prima/cadastrar"
                 },
@@ -34,11 +39,13 @@
             ],
             "icon": "fa-flask-vial",
             "text": "Cadastre e gerencie a matéria prima utilizada.",
-            "buttonText": "Ver Matéria Prima"
+            "buttonText": "Ver Matéria Prima",
+            "key": "materia_prima:consultar"
         },
         {
             "title": "Projetos",
-            "dropdown": [{
+            "dropdown": [
+                {
                     "title": "Cadastrar",
                     "url": "/projeto/cadastrar"
                 },
@@ -49,39 +56,36 @@
             ],
             "icon": "fa-gear",
             "text": "Gerencie e visualize os projetos em andamento.",
-            "buttonText": "Ver Projetos"
+            "buttonText": "Ver Projetos",
+            "key": "projeto:consultar"
         },
         {
-            "title": "Usuários",
+            "title": "Configurações do Sistema",
             "dropdown": [
                 {
-                    "title": "Perfis de Usuário",
-                    "url": "/usuario/perfis"
+                    "title": "Usuário Perfis",
+                    "url": "/usuario/perfis",
+                    "key":"perfis:listar"
                 },
                 {
-                    "title": "Cadastrar",
-                    "url": "/usuario/cadastrar"
+                    "title": "Usuário Cadastrar",
+                    "url": "/usuario/cadastrar",
+                    "key":"usuario:cadastrar"
                 },
                 {
-                    "title": "Listar",
-                    "url": "/usuario/listar"
+                    "title": "Usuário Listar",
+                    "url": "/usuario/listar",
+                    "key":"usuario:consultar"
+                },
+                {
+                    "title": "Configurações Página de Impressão",
+                    "url": "/configuracoes/configuracao-impressao",
+                    "key": "config:consultar"
                 }
-                
-                
             ],
-            "icon": "fa-users",
-            "text": "Gerencie os usuários do sistema.",
-            "buttonText": "Ver Usuários"
-        },
-        {
-            "title": "Configurações",
-            "dropdown": [{
-                "title": "Configurações Gerais do Sistema",
-                "url": "/configuracao"
-            }],
             "icon": "fa-cogs",
             "text": "Configurações gerais do Sistema.",
-            "buttonText": "Configurar"
+            "buttonText": "Configurar"            
         }
     ]
 }

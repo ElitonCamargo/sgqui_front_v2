@@ -1,7 +1,10 @@
+//LOGIN
 $(function () {
 
     // LOGAR
-    $(document).on('click', '#logar', function () {
+    $(document).on('submit', '#login', function (e) {
+        e.preventDefault();
+
         let email = $('#email').val();
         let password = $('#password').val();
 
@@ -25,28 +28,51 @@ $(function () {
             .then(data => {
                 if (data.success) {
                     if (!getSessionData('tk')) {
+
                         setSessionData('tk', `Bearer ${data.data.token}`);
                         setSessionData('us', data.data.usuario);
-                        
+
+
+                        //salva perfil ativo
                         const usuarioId = data.data.usuario.id;
-                        req_GET(`${opt.urlUsuarioPerfis}/usuario/${usuarioId}/perfis/`)
+
+                        req_GET(`${opt.urlUsuarioPerfis}/usuario/${usuarioId}/perfis`)
                             .then(result => {
+
                                 if (result.success && result.data && result.data.length > 0) {
                                     const perfis = result.data.sort((a, b) => a.vinculo_id - b.vinculo_id);
-                                    const primeiroPerfil = perfis[0];
-                                    
 
-                                    setSessionData('_pfa', obfuscarPerfilAtivo({
+                                    const primeiroPerfil = perfis[0];
+
+                                    setSessionData('_pfa', {
                                         i: primeiroPerfil.id,
                                         n: primeiroPerfil.nome,
-                                        v: primeiroPerfil.vinculo_id
-                                    }));
+                                        v: primeiroPerfil.vinculo_id,
+                                    });
+
+                                    // carrega permissoes
+                                    req_GET(`${opt.urlPermissoesPorIdPerfil}/${primeiroPerfil.id}`)
+                                        .then(result1 => {
+                                            setSessionData('permissoes', JSON.stringify(result1.data));
+                                            // Só redireciona DEPOIS de salvar as permissões
+                                            window.location.href = "/";
+                                        })
+                                        .catch(() => {
+                                            // Se falhar ao carregar permissões, redireciona mesmo assim
+                                            window.location.href = "/";
+                                        });
+
+                                } else {
+                                    // Se não tiver perfis, redireciona
+                                    window.location.href = "/";
                                 }
-                                window.location.href = "/";
+
                             })
                             .catch(() => {
                                 window.location.href = "/";
                             });
+
+
                     }
                 } else {
                     $('#loginErro').text(data.erro);
@@ -56,27 +82,24 @@ $(function () {
             .catch(error => {
                 console.error('Erro:', error);
                 if (error.message.includes('Failed to fetch')) {
-                    $('#loginErro').text('A API não está disponível. Verifique a conexão.'); // Mensagem se a API estiver fora
+                    $('#loginErro').text('A API não está disponível. Verifique a conexão.');
                 } else {
-                    $('#loginErro').text('Falha ao logar. Tente novamente.'); // Mensagem genérica em outros erros
+                    $('#loginErro').text('Falha ao logar. Tente novamente.');
                 }
                 $('#loginErro').show();
             });
     });
 
-    // FIM LOGAR
 })
 
 //LOGOFF
 const logoff = () => {
-    destroySession('tk');
-    destroySession('us');
+    sessionStorage.clear();
     start();
 }
 
 const req_GET = async (url = "", preload = false) => {
-    // Mostra o preload antes de fazer a requisição
-    preload && showPreload();
+
     try {
         const response = await fetch(url, {
             method: "GET",
@@ -95,7 +118,7 @@ const req_GET = async (url = "", preload = false) => {
 
         const result = await response.json();
 
-        if(result.success === false){
+        if (result.success === false) {
             return {
                 status: response.status,
                 message: result.message || 'Erro desconhecido.',
@@ -119,9 +142,8 @@ const req_GET = async (url = "", preload = false) => {
     }
 }
 
-const req_INSERT = async (url = "", data = {}, preload = false) => {
-    // Mostra o preload antes de fazer a requisição
-    preload && showPreload();
+const req_POST = async (url = "", data = {}, preload = false) => {
+
     try {
         const response = await fetch(url, {
             method: "POST",
@@ -163,12 +185,8 @@ const req_INSERT = async (url = "", data = {}, preload = false) => {
     }
 };
 
-// Alias para compatibilidade com chamadas existentes
-const req_POST = (url = "", data = {}, preload = false) => req_INSERT(url, data, preload);
+const req_PUT = async (url = "", data = {}, preload = false) => {
 
-const req_UPDATE = async (url = "", data = {}, preload = false) => {
-    // Mostra o preload antes de fazer a requisição
-    preload && showPreload();
     try {
         const response = await fetch(url, {
             method: "PUT",
@@ -206,8 +224,7 @@ const req_UPDATE = async (url = "", data = {}, preload = false) => {
 }
 
 const req_DELETE = async (url = '', preload = false) => {
-    // Mostra o preload antes de fazer a requisição
-    preload && showPreload();
+
     try {
         const response = await fetch(url, {
             method: "DELETE",
@@ -244,24 +261,6 @@ const req_DELETE = async (url = '', preload = false) => {
     }
 }
 
-// Função para mostrar o preload (pode ser uma spinner, mensagem, etc.)
-const showPreload = () => {
-    // Exemplo simples: mostrando uma mensagem de "Carregando..."
-    const preloadElement = document.getElementById('preload');
-    if (preloadElement) {
-        preloadElement.classList.remove('d-none'); // Remove a classe d-none para mostrar o elemento
-        preloadElement.classList.add('d-block'); // Adiciona a classe d-block para garantir que o elemento seja exibido
-    }
-};
-
-// Função para esconder o preload após a requisição
-const hidePreload = () => {
-    const preloadElement = document.getElementById('preload');
-    if (preloadElement) {
-        preloadElement.classList.remove('d-block'); // Remove a classe d-block para esconder o elemento
-        preloadElement.classList.add('d-none'); // Adiciona a classe d-none para garantir que o elemento seja ocultado
-    }
-};
 
 // Função para abrir o modal com a mensagem de erro
 const showErrorModal = (errorMessage) => {
@@ -277,6 +276,8 @@ const showErrorModal = (errorMessage) => {
     });
 };
 
+
+// TRATAMENTO DE AVATAR
 const AVATAR_DEFAULT_SRC = '/assets/img/user-default.png';
 
 const validarArquivoAvatar = (file, options = {}) => {
@@ -391,18 +392,51 @@ const configurarPreviewAvatar = (inputSelector, previewSelector, options = {}) =
         });
     });
 };
+// TRATAMENTO DE AVATAR FIM
+
 
 //Função para criar uma sessão com dados
 const setSessionData = (key, value) => {
-    sessionStorage.setItem(key, JSON.stringify(value));
+    let payload = value;
+
+    const str = JSON.stringify(value);
+    const encoded = btoa(unescape(encodeURIComponent(str)));
+    const hash = encoded.split('').reverse().join('');
+    const timestamp = Date.now().toString(36);
+    payload = `${hash}.${timestamp}`;
+
+    const keyEncoded = btoa(unescape(encodeURIComponent(String(key))));
+    const storageKey = `_k_${keyEncoded.split('').reverse().join('')}`;
+
+    sessionStorage.setItem(storageKey, JSON.stringify(payload));
 }
 
 // Função para obter dados da sessão
 const getSessionData = (key) => {
-    const data = sessionStorage.getItem(key);
-    // console.log(data, key);
-    return data ? JSON.parse(data) : null;
+    const keyEncoded = btoa(unescape(encodeURIComponent(String(key))));
+    const storageKey = `_k_${keyEncoded.split('').reverse().join('')}`;
+
+    const data = sessionStorage.getItem(storageKey);
+    if (!data) return null;
+
+    const parsed = JSON.parse(data);
+
+    try {
+        if (!parsed || typeof parsed !== 'string') return null;
+        const parts = parsed.split('.');
+        if (parts.length < 2) return null;
+        const hash = parts[0];
+        const reversed = hash.split('').reverse().join('');
+        const decoded = decodeURIComponent(escape(atob(reversed)));
+        return JSON.parse(decoded);
+    } catch (e) {
+        console.error('Erro ao desobfuscar perfil');
+        return null;
+    }
+
+    return parsed;
 }
+
 
 // Função para destruir uma sessão
 const destroySession = (key) => {
@@ -536,7 +570,7 @@ const setConfig = async (id, key, value) => {
     };
 
     try {
-        const result = await req_UPDATE(opt.urlConfig + "/" + id, jsonData);
+        const result = await req_PUT(opt.urlConfig + "/" + id, jsonData);
 
         if (!result.success) {
             // Tratamento de erro
@@ -554,46 +588,6 @@ const setConfig = async (id, key, value) => {
     }
 };
 
-const insertConfig = async (key, value) => {
-    let data = {
-        "key": key,
-        "value": value
-    };
-
-    try {
-        const result = await req_INSERT(`${opt.urlConfig}`, data);
-        return result;
-    } catch (error) {
-        console.error('Erro ao inserir config:', error);
-        return null;
-    }
-};
-
-const updateConfig = async (key, value) => {
-    let data = {
-        "key": key,
-        "value": value
-    };
-
-    try {
-        const result = await req_UPDATE(`${opt.urlConfig}`, data);
-        return result.success ? result : null;
-    } catch (error) {
-        console.error('Erro ao atualizar config:', error);
-        return null;
-    }
-};
-
-const deleteConfig = async (id) => {
-    try {
-        const result = await req_DELETE(`${opt.urlConfig}/${id}`);
-        return result.success ? result : null;
-    } catch (error) {
-        console.error('Erro ao deletar config:', error);
-        return null;
-    }
-};
-
 const showError = (codErro, codStatus) => {
 
     alert(`Erro ${codErro}: ${erro[codErro]}`);
@@ -607,28 +601,6 @@ const showError = (codErro, codStatus) => {
 
 const removeAcento = (str) => {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
-async function start() {
-    if (!getSessionData('tk')) {
-        document.getElementById('nav').innerHTML = '';
-        document.getElementById('footer').innerHTML = '';
-        await fetch('/page/login.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('root').innerHTML = data;
-            })
-            .catch(error => console.error('Erro01:', error));
-    } else {
-        await carregaMenu();
-        const sessionUs = getSessionData('us');
-        if (sessionUs && sessionUs.id) {
-            await inserirNomeLogado();
-        }
-        await carregaHome();
-        await carregaRodape();
-        await carregaCardsHome();
-    }
 }
 
 async function carregaMenu() {
@@ -676,7 +648,7 @@ async function carregaRodape() {
 async function carregaCardsHome() {
     try {
         // Carrega o conteúdo do menu e dos cards do nav.json
-        const response = await fetch('/page/nav.json'); // Atualize o caminho para nav.json
+        const response = await fetch('/page/nav.json');
         if (!response.ok) {
             throw new Error(`Erro na requisição: ${response.statusText}`);
         }
@@ -687,8 +659,38 @@ async function carregaCardsHome() {
             throw new Error('Menu não encontrado no arquivo JSON.');
         }
 
+        // Obtém as permissões do usuário
+        const permissoes = getPermissoes() || {};
+
+        // Filtra o menu baseado nas permissões
+        const menuFiltrado = data.menu.map(item => {
+            if (item.dropdown) {
+                const dropdownFiltrado = item.dropdown.filter(subItem => {
+                    if (subItem.key) {
+                        return permissoes[subItem.key] === true;
+                    }
+                    return true;
+                });
+
+                const isConfigMenu = item.key === 'config:consultar' || item.title === 'Configurações do Sistema';
+                if (isConfigMenu) {
+                    return dropdownFiltrado.length > 0 ? { ...item, dropdown: dropdownFiltrado } : null;
+                }
+
+                if (item.key && permissoes[item.key] !== true) {
+                    return null;
+                }
+
+                return dropdownFiltrado.length > 0 ? { ...item, dropdown: dropdownFiltrado } : null;
+            }
+
+            if (item.key && permissoes[item.key] !== true) {
+                return null;
+            }
+            return item;
+        }).filter(item => item !== null);
+
         // Adiciona o conteúdo do menu à página
-        const menu = data.menu;
         const navbarMenu = document.getElementById('navbar-menu');
 
         // Verifica se o navbarMenu foi carregado
@@ -698,7 +700,7 @@ async function carregaCardsHome() {
         }
 
         // Adiciona itens de menu e cards
-        menu.forEach(item => {
+        menuFiltrado.forEach(item => {
             if (item.dropdown) {
                 // Cria um item de dropdown
                 const dropdown = document.createElement('li');
@@ -729,7 +731,12 @@ async function carregaCardsHome() {
         function criarCards() {
             const cardsContainer = document.getElementById('cards-home');
             if (cardsContainer) {
-                menu.forEach(item => {
+                const hiddenCardKeys = new Set(['config:consultar']);
+                const hiddenCardTitles = new Set(['Configurações do Sistema']);
+                menuFiltrado.forEach(item => {
+                    if ((item.key && hiddenCardKeys.has(item.key)) || hiddenCardTitles.has(item.title)) {
+                        return;
+                    }
                     const cardElement = document.createElement('div');
                     cardElement.className = 'col-md-3 mb-3';
                     cardElement.innerHTML = `
@@ -748,6 +755,7 @@ async function carregaCardsHome() {
                 });
             }
         }
+
         if (document.getElementById('cards-home')) {
             criarCards();
         }
@@ -785,7 +793,7 @@ async function inserirNomeLogado() {
     try {
         let sessionUs = getSessionData('us');
 
-        if(sessionUs === null) {
+        if (sessionUs === null) {
             console.error('Nome de usuário não encontrado ou está vazio.');
             return;
         }
@@ -813,7 +821,7 @@ async function inserirNomeLogado() {
 async function carregarPerfisUsuario(usuarioId) {
     try {
         const result = await req_GET(`${opt.urlUsuarioPerfis}/usuario/${usuarioId}/perfis/`);
-        
+
         if (!result.success || !result.data || result.data.length === 0) {
             console.error('Nenhum perfil encontrado para o usuário.');
             $('#perfilAtivoSelect').html('<option value="">Sem perfis</option>');
@@ -822,7 +830,7 @@ async function carregarPerfisUsuario(usuarioId) {
 
         const perfis = result.data;
         const select = $('#perfilAtivoSelect');
-        
+
         if (!select.length) {
             console.error('Select de perfis não encontrado no DOM');
             return;
@@ -839,10 +847,10 @@ async function carregarPerfisUsuario(usuarioId) {
 
         const perfilAtivo = getPerfilAtivo();
         const perfilIdAtivo = perfilAtivo?.i || perfis[0].id;
-        
+
         select.val(perfilIdAtivo);
 
-        select.off('change').on('change', function() {
+        select.off('change').on('change', function () {
             const novoPerfilId = $(this).val();
             const novoPerfilObj = perfis.find(p => p.id == novoPerfilId);
             if (novoPerfilObj) {
@@ -857,6 +865,7 @@ async function carregarPerfisUsuario(usuarioId) {
 }
 
 function trocarPerfilAtivo(perfilSelecionado, todosOsPerfis) {
+
     if (!perfilSelecionado || !perfilSelecionado.id) {
         showErrorModal('Perfil inválido.');
         return;
@@ -874,10 +883,17 @@ function trocarPerfilAtivo(perfilSelecionado, todosOsPerfis) {
         v: perfilValido.vinculo_id
     });
 
-    showToast('Perfil alterado com sucesso! Recarregando...', 'success');
-    setTimeout(() => {
-        window.location.reload();
-    }, 1000);
+    req_GET(`${opt.urlPermissoesPorIdPerfil}/${perfilValido.id}`)
+        .then(result1 => {
+            setSessionData('permissoes', JSON.stringify(result1.data));
+            showToast('Perfil alterado com sucesso! Recarregando...', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        })
+        .catch(() => {
+            showToast('Erro ao carregar permissões do perfil', 'error');
+        });
 }
 
 function showToast(message, type = 'info') {
@@ -890,44 +906,55 @@ function showToast(message, type = 'info') {
             <div class="toast-body">${message}</div>
         </div>
     `);
-    
+
     $('body').append(toast);
     const bsToast = new bootstrap.Toast(toast[0]);
     bsToast.show();
-    
-    toast.on('hidden.bs.toast', function() {
+
+    toast.on('hidden.bs.toast', function () {
         $(this).remove();
     });
 }
 
-function obfuscarPerfilAtivo(perfil) {
-    const str = JSON.stringify(perfil);
-    const encoded = btoa(unescape(encodeURIComponent(str)));
-    const hash = encoded.split('').reverse().join('');
-    const timestamp = Date.now().toString(36);
-    return `${hash}.${timestamp}`;
-}
-
-function desobfuscarPerfilAtivo(obfuscado) {
-    try {
-        if (!obfuscado || typeof obfuscado !== 'string') return null;
-        const parts = obfuscado.split('.');
-        if (parts.length < 2) return null;
-        const hash = parts[0];
-        const reversed = hash.split('').reverse().join('');
-        const decoded = decodeURIComponent(escape(atob(reversed)));
-        return JSON.parse(decoded);
-    } catch (e) {
-        console.error('Erro ao desobfuscar perfil');
-        return null;
-    }
-}
-
 function getPerfilAtivo() {
-    const obfuscado = getSessionData('_pfa');
-    return desobfuscarPerfilAtivo(obfuscado);
+    return getSessionData('_pfa');
 }
 
 function setPerfilAtivo(perfil) {
-    setSessionData('_pfa', obfuscarPerfilAtivo(perfil));
+    setSessionData('_pfa', perfil);
 }
+
+function getPermissoes() {
+    const permissoes = getSessionData('permissoes');
+    try {
+        if (!permissoes) return {};
+        return typeof permissoes === 'string' ? JSON.parse(permissoes) : permissoes;
+    } catch (e) {
+        console.error('Erro ao parsear permissões:', e);
+        return {};
+    }
+}
+
+async function start() {
+    if (!getSessionData('tk')) {
+        document.getElementById('nav').innerHTML = '';
+        document.getElementById('footer').innerHTML = '';
+        await fetch('/page/login.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('root').innerHTML = data;
+            })
+            .catch(error => console.error('Erro01:', error));
+    } else {
+        await carregaMenu();
+        const sessionUs = getSessionData('us');
+        if (sessionUs && sessionUs.id) {
+            await inserirNomeLogado();
+        }
+        await carregaHome();
+        await carregaRodape();
+        await carregaCardsHome();
+    }
+}
+
+const permissoes = getPermissoes();

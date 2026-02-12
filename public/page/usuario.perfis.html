@@ -324,13 +324,29 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
             function carregarTodasPermissoes() {
                 return req_GET(opt.urlPermissoes).then((result) => {
 
-                    console.log('RESULT:', result.data);
+                    console.log('RESULT carregarTodasPermissoes:', result);
 
                     if (result.success && Array.isArray(result.data)) {
 
+                        // A API retorna array de objetos { recurso, permissoes: [] }
+                        // Precisamos "achatar" para pegar todas as permissões
+                        const todasPermissoesFlat = [];
+                        result.data.forEach(item => {
+                            if (item.permissoes && Array.isArray(item.permissoes)) {
+                                item.permissoes.forEach(p => {
+                                    todasPermissoesFlat.push({
+                                        ...p,
+                                        recurso: item.recurso // Garantir que o recurso está correto
+                                    });
+                                });
+                            }
+                        });
+
                         // Sanitizar dados das permissões
-                        todasPermissoes = result.data.map(p => ({
+                        todasPermissoes = todasPermissoesFlat.map(p => ({
                             ...p,
+                            id: Number(p.id),
+                            codigo: String(p.codigo || '').trim(),
                             recurso: String(p.recurso || '').trim(),
                             descricao: String(p.descricao || '').trim(),
                             metodo: String(p.metodo || '').trim(),
@@ -341,6 +357,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                         console.log('PERMISSÕES CARREGADAS:', todasPermissoes.length);
                         if (todasPermissoes.length > 0) {
                             console.log('EXEMPLO DE PERMISSÃO:', todasPermissoes[0]);
+                            console.log('EXEMPLO config:consultar:', todasPermissoes.find(p => p.codigo === 'config:consultar'));
                         }
                         return todasPermissoes;
                     }
@@ -357,18 +374,49 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
 
             function carregarPermissoesDoPerfil(perfilId) {
                 return req_GET(opt.urlPerfilPermissoes + '/perfil/' + perfilId).then((result) => {
-                    if (result.success && result.data.length > 0) {
-                        // A resposta vem como array com um objeto contendo perfil e permissoes
-                        const permissoes = result.data[0].permissoes || [];
-                        // Sanitizar dados das permissões
-                        permissoesPerfilAtual = permissoes.map(p => ({
-                            ...p,
-                            recurso: String(p.recurso || '').trim(),
-                            descricao: String(p.descricao || '').trim(),
-                            metodo: String(p.metodo || '').trim(),
-                            rota_template: String(p.rota_template || '').trim(),
-                            vinculoId: normalizarVinculoId(p)
-                        }));
+                    console.log('RESPOSTA API permissões do perfil:', result);
+                    
+                    if (result.success) {
+                        // Verificar se a resposta é um objeto plano (novo formato da API)
+                        if (result.data && !Array.isArray(result.data) && typeof result.data === 'object') {
+                            // Novo formato: data é um objeto plano {"codigo": boolean}
+                            // Usar o campo "codigo" para fazer match direto
+                            const permissoesAtivas = Object.keys(result.data)
+                                .filter(key => result.data[key] === true)
+                                .map(key => {
+                                    // Procurar a permissão pelo código
+                                    const permissao = todasPermissoes.find(p => p.codigo === key);
+                                    if (!permissao) {
+                                        console.warn(`Permissão com código "${key}" não encontrada em todasPermissoes`);
+                                    }
+                                    return permissao;
+                                })
+                                .filter(p => p != null);
+                            
+                            console.log('Permissões ativas encontradas:', permissoesAtivas);
+                            permissoesPerfilAtual = permissoesAtivas.map(p => ({
+                                ...p,
+                                id: Number(p.id),
+                                vinculoId: '' // Não temos vinculoId neste formato
+                            }));
+                            
+                        } else if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+                            // Formato antigo: array com objeto contendo permissoes
+                            const permissoes = result.data[0].permissoes || [];
+                            permissoesPerfilAtual = permissoes.map(p => ({
+                                ...p,
+                                id: Number(p.id),
+                                recurso: String(p.recurso || '').trim(),
+                                descricao: String(p.descricao || '').trim(),
+                                metodo: String(p.metodo || '').trim(),
+                                rota_template: String(p.rota_template || '').trim(),
+                                vinculoId: normalizarVinculoId(p)
+                            }));
+                        } else {
+                            permissoesPerfilAtual = [];
+                        }
+                        
+                        console.log('permissoesPerfilAtual final:', permissoesPerfilAtual);
                         return permissoesPerfilAtual;
                     }
                     permissoesPerfilAtual = [];
@@ -390,6 +438,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                         if (!mapa[recurso]) mapa[recurso] = [];
                         mapa[recurso].push({
                             ...permissao,
+                            id: Number(permissao.id),
                             recurso: permissao.recurso || recurso
                         });
                     });
@@ -407,12 +456,20 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                 }
 
                 const permissoesPorRecurso = montarPermissoesPorRecurso(todasPermissoes);
+                
+                // Debug: verificar IDs
+                console.log('DEBUG IDs das permissões do perfil:', permissoesPerfilAtual.map(p => ({id: p.id, tipo: typeof p.id})));
 
                 container.empty();
 
                 Object.keys(permissoesPorRecurso).sort().forEach(recurso => {
+                    
+                    // Filtrar recursos não desejados
+                    if (recurso === 'Elementos' || recurso === 'elemento' || recurso === 'Rotas') {
+                        return;
+                    }
 
-                    console.log("recurso", recurso)
+                    // console.log("recurso", recurso)
 
                     // Container do recurso
                     const recursoDiv = $('<div>').addClass('mb-3');
@@ -430,10 +487,16 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                     permissoesPorRecurso[recurso]
                         .sort((a, b) => ordemMetodo(a.metodo) - ordemMetodo(b.metodo))
                         .forEach(permissao => {
-                            const isChecked = permissoesPerfilAtual.some(p => p.id === permissao.id);
+                            const isChecked = permissoesPerfilAtual.some(p => Number(p.id) === Number(permissao.id));
                             const vinculoId = isChecked
-                                ? (permissoesPerfilAtual.find(p => p.id === permissao.id).vinculoId || '')
+                                ? (permissoesPerfilAtual.find(p => Number(p.id) === Number(permissao.id)).vinculoId || '')
                                 : '';
+                            
+                            // Debug: verificar checagem para Configurações
+                            if (recurso === 'Configurações') {
+                                console.log(`Permissao ID:${permissao.id} codigo:${permissao.codigo} (${permissao.descricao}): isChecked=${isChecked}`);
+                                console.log('IDs em permissoesPerfilAtual:', permissoesPerfilAtual.map(p => p.id));
+                            }
 
                             // Coluna
                             const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
@@ -472,7 +535,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                 if (!readonly && perfilId) {
                     attachPermissaoEventHandlers(perfilId);
                 } else {
-                    console.log('[DEBUG RENDER 9] Modo readonly ou sem perfilId');
+                    // console.log('[DEBUG RENDER 9] Modo readonly ou sem perfilId');
                 }
             }
 
@@ -489,6 +552,12 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                 container.empty();
 
                 Object.keys(permissoesPorRecurso).sort().forEach(recurso => {
+                    
+                    // Filtrar recursos não desejados
+                    if (recurso === 'Elementos' || recurso === 'elemento' || recurso === 'Rotas') {
+                        return;
+                    }
+                    
                     const recursoDiv = $('<div>').addClass('mb-3');
                     const titulo = $('<h6>').addClass('fw-bold text-primary border-bottom pb-2');
                     const icon = $('<i>').addClass('fa-solid fa-folder');
@@ -696,7 +765,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                     let columnIndex = $(this).closest('th').index();
                     table.column(columnIndex).search(this.value).draw();
                 });
-                console.log('='.repeat(80));
+                // console.log('='.repeat(80));
 
                 ///////////////CADASTRAR///////////////////////
                 $('#formCadastrarPerfil').on('submit', function (event) {
@@ -722,7 +791,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                                     showErrorModal(vinculoResult.message || 'Erro ao vincular permissões.');
                                 }
 
-                                console.log('[DEBUG CADASTRO 5] Perfil cadastrado com sucesso');
+                                // console.log('[DEBUG CADASTRO 5] Perfil cadastrado com sucesso');
                                 $('#cadastrarModal').modal('hide');
                                 $('#formCadastrarPerfil')[0].reset();
                                 alterado = 1;
@@ -730,7 +799,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
 
                                 setTimeout(() => {
                                     if (novoPerfil && novoPerfil.id) {
-                                        console.log('[DEBUG CADASTRO 6] Abrindo modal de edição para novo perfil:', novoPerfil.id);
+                                        // console.log('[DEBUG CADASTRO 6] Abrindo modal de edição para novo perfil:', novoPerfil.id);
                                         data.push(novoPerfil);
                                         exibirDetalhes(novoPerfil);
                                         setTimeout(() => {
@@ -829,7 +898,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                     const jsonData = serializadoParaJSON($(this).serialize());
                     const permissoesSelecionadas = getPermissoesSelecionadasEdicao();
 
-                    req_UPDATE(opt.urlPerfis + "/" + jsonData.id, jsonData)
+                    req_PUT(opt.urlPerfis + "/" + jsonData.id, jsonData)
                         .then(result => {
                             if (!result.success) {
                                 let errorMessage = (result.message || 'Erro desconhecido.');

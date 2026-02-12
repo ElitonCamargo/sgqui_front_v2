@@ -51,7 +51,7 @@
       event.preventDefault(); // Impedir o envio padrão do formulário
       const jsonData = serializadoParaJSON($(this).serialize());
 
-      req_INSERT(opt.urlNutriente, jsonData)
+      req_POST(opt.urlNutriente, jsonData)
         .then(result => {
           // Exibir resposta da API no console
 

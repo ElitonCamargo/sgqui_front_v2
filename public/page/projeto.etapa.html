@@ -273,7 +273,7 @@
 
             // console.log("ordem", etapa_ordem)
 
-            req_UPDATE(opt.urlEtapa + "/projeto/ordenar", etapa_ordem).then(result => {
+            req_PUT(opt.urlEtapa + "/projeto/ordenar", etapa_ordem).then(result => {
 
                 if (!result.success) {
                     // Tratamento de erro
@@ -326,7 +326,7 @@
                 // console.log('Mover nutriente entre etapas \n', arrayParaUpdate);
                 // ************************************************** Chamando a função para executar a ação na API **********************************
                 // Alterar as matérias primas dentro das etapas
-                req_UPDATE(opt.urlEtapaMp + "/ordenar/m_p", arrayParaUpdate).then(result => {
+                req_PUT(opt.urlEtapaMp + "/ordenar/m_p", arrayParaUpdate).then(result => {
 
                     if (!result.success) {
                         // Tratamento de erro
@@ -651,7 +651,7 @@
             "ordem": "0"
         }
 
-        req_INSERT(opt.urlEtapaMp, etapa_mp_data).then(result => {
+        req_POST(opt.urlEtapaMp, etapa_mp_data).then(result => {
 
             if (!result.success) {
                 // Tratamento de erro
@@ -753,7 +753,7 @@
 
         jsonData = { [field]: value };
 
-        req_UPDATE(opt.urlEtapaMp + "/" + idMp, jsonData).then(result => {
+        req_PUT(opt.urlEtapaMp + "/" + idMp, jsonData).then(result => {
 
             if (!result.success) {
                 // Tratamento de erro
@@ -897,7 +897,7 @@
 
             if (action === 'editar') {
                 // Envia requisição de atualização
-                req_UPDATE(opt.urlEtapa + `/${id}`, jsonData).then(result => {
+                req_PUT(opt.urlEtapa + `/${id}`, jsonData).then(result => {
 
                     if (!result.success) {
                         // Tratamento de erro
@@ -918,7 +918,7 @@
                 // Envia requisição de criação
                 jsonData.ordem = 0
 
-                req_INSERT(opt.urlEtapa, jsonData).then(result => {
+                req_POST(opt.urlEtapa, jsonData).then(result => {
                     if (!result.success) {
                         // Tratamento de erro
                         let errorMessage;
