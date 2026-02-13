@@ -71,7 +71,7 @@
         const sessionUs = getSessionData('us');
         
         if (!sessionUs || !sessionUs.id) {
-            showErrorModal('Sessão inválida. Faça login novamente.');
+            showToast('Sessão inválida. Faça login novamente.', 'error');
             setTimeout(() => logoff(), 2000);
             return;
         }
@@ -89,7 +89,7 @@
             
             const file = $('#avatarInput')[0].files[0];
             if (!file) {
-                showErrorModal('Selecione uma imagem.');
+                showToast('Selecione uma imagem.', 'warning');
                 return;
             }
 
@@ -110,12 +110,12 @@
                         showToast('Avatar atualizado com sucesso!', 'success');
                         $('#avatarInput').val('');
                     } else {
-                        showErrorModal(result.message || 'Erro ao salvar avatar.');
+                        showToast(result.message || 'Erro ao salvar avatar.', 'error');
                     }
                 })
                 .catch(error => {
                     hidePreload();
-                    showErrorModal('Erro: ' + error.message);
+                    showToast('Erro: ' + error.message, 'error');
                 });
         });
 
@@ -153,12 +153,12 @@
             const senhaConfirma = $('#senhaConfirma').val();
 
             if (senhaNova !== senhaConfirma) {
-                showErrorModal('As senhas não conferem.');
+                showToast('As senhas não conferem.', 'warning');
                 return;
             }
 
             if (senhaNova.length < 6) {
-                showErrorModal('A nova senha deve ter no mínimo 6 caracteres.');
+                showToast('A nova senha deve ter no mínimo 6 caracteres.', 'warning');
                 return;
             }
 
@@ -170,11 +170,11 @@
                         showToast('Senha alterada com sucesso!', 'success');
                         $('#formTrocarSenha')[0].reset();
                     } else {
-                        showErrorModal(result.message || 'Erro ao alterar senha.');
+                        showToast(result.message || 'Erro ao alterar senha.', 'error');
                     }
                 })
                 .catch(error => {
-                    showErrorModal('Erro de comunicação: ' + error.message);
+                    showToast('Erro de comunicação: ' + error.message, 'error');
                 });
         });
     });

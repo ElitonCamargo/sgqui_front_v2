@@ -89,6 +89,15 @@
     //variavel de controle se algo foi alterado
     let alterado = 0;
 
+    const hasPerm = (key) => {
+      const permissoesSessao = getPermissoes();
+      return permissoesSessao && permissoesSessao[key] === true;
+    };
+
+    if (!hasPerm('materia_prima:cadastrar')) {
+      $('#btnCadastrarMateriaPrima, .btn-cadastrar-materia-prima').addClass('d-none');
+    }
+
     req_GET(opt.urlMateriaPrima).then((result) => {
 
       data = result.data;
@@ -97,8 +106,8 @@
         // Tratamento de erro
         let errorMessage;
         // errorMessage = `${result.message || 'Erro desconhecido.'}`;
-        // Usa a função showErrorModal para mostrar o erro
-        // showErrorModal(errorMessage);
+        // Usa a função showToast para mostrar o erro
+        // showToast(errorMessage, 'error');
         data = null;
       }
 
@@ -121,10 +130,19 @@
             orderable: false,
 
             render: function (data, type, row) {
+              const botaoDetalhes = hasPerm('materia_prima:consultarPorId')
+                ? `<button class="btn btn-outline-secondary btn-sm btn-detalhes-editar" data-id="${row.id}" data-bs-toggle="modal" data-bs-target="#detalhesModal" title="${hasPerm('materia_prima:alterar') ? 'Ver/Editar' : 'Ver'}"><i class="fa-solid fa-eye"></i>${hasPerm('materia_prima:alterar') ? '/<i class=\"fa-solid fa-pen-to-square\"></i>' : ''}</button>`
+                : '';
+              const botaoGarantias = hasPerm('garantia:consultarPorMateria_prima')
+                ? `<button class="btn btn-outline-secondary btn-sm btn-garantias" data-id="${row.id}" data-nome="${row.nome}" data-bs-toggle="modal" data-bs-target="#modalGarantias" title="Garantias"><i class="fa-solid fa-award"></i></button>`
+                : '';
+              const botaoExcluir = hasPerm('materia_prima:deletar')
+                ? `<button class="btn btn-outline-secondary btn-sm btn-excluir" data-id="${row.id}" data-nome="${row.nome}" data-bs-toggle="modal" data-bs-target="#confirmacaoExclusaoModal" title="Excluir"><i class="fa-solid fa-ban"></i></button>`
+                : '';
               return `
-                <button class="btn btn-outline-secondary btn-sm btn-detalhes-editar" data-id="${row.id}" data-bs-toggle="modal" data-bs-target="#detalhesModal" title="Ver/Editar"><i class="fa-solid fa-eye"></i>/<i class="fa-solid fa-pen-to-square"></i></button>
-                <button class="btn btn-outline-secondary btn-sm btn-garantias" data-id="${row.id}" data-nome="${row.nome}" data-bs-toggle="modal" data-bs-target="#modalGarantias" title="Garantias"><i class="fa-solid fa-award"></i></button>
-                <button class="btn btn-outline-secondary btn-sm btn-excluir" data-id="${row.id}" data-nome="${row.nome}" data-bs-toggle="modal" data-bs-target="#confirmacaoExclusaoModal" title="Excluir"><i class="fa-solid fa-ban"></i></button>
+                ${botaoDetalhes}
+                ${botaoGarantias}
+                ${botaoExcluir}
                 `;
             }
           },
@@ -204,10 +222,23 @@
 
         $('#detalhesNutriente').html(html);
         $('#detalhesModal').modal('show');
+
+        if (!hasPerm('materia_prima:alterar')) {
+          $('#btnEditar').addClass('d-none');
+          $('#btnSalvar').addClass('d-none');
+          $('.form-control').prop('readonly', true);
+        } else {
+          $('#btnEditar').removeClass('d-none');
+          $('#btnSalvar').addClass('d-none');
+        }
       }
 
       // Adicionar evento de clique para o botão "Editar"
       $('#detalhesModal').on('click', '#btnEditar', function () {
+        if (!hasPerm('materia_prima:alterar')) {
+          showToast('Sem permissão para editar.', 'warning');
+          return;
+        }
         $('.form-control').prop('readonly', false);
         $('#btnEditar').addClass('d-none');
         $('#btnSalvar').removeClass('d-none');
@@ -215,6 +246,11 @@
 
       // Adicionar evento de submit para o formulário de edição do materia_prima
       $('#formEditarMateriaPrima').on('submit', function (event) {
+
+        if (!hasPerm('materia_prima:alterar')) {
+          showToast('Sem permissão para editar.', 'warning');
+          return;
+        }
 
         event.preventDefault(); // Impedir o envio padrão do formulário
         const jsonData = serializadoParaJSON($(this).serialize());
@@ -226,8 +262,8 @@
               // Tratamento de erro
               let errorMessage;
               errorMessage = `${result.message || 'Erro desconhecido.'}`;
-              // Usa a função showErrorModal para mostrar o erro
-              showErrorModal(errorMessage);
+              // Usa a função showToast para mostrar o erro
+              showToast(errorMessage, 'error');
               return;
             }
 
@@ -238,7 +274,7 @@
 
           }).catch(error => {
             // Tratamento de erro de rede ou erro inesperado
-            showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+            showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
           });
       });
 
@@ -254,6 +290,10 @@
       // Adicionar evento de clique para o botão "Excluir"
 
       $('#tabela-materiaPrima').on('click', '.btn-excluir', function () {
+        if (!hasPerm('materia_prima:deletar')) {
+          showToast('Sem permissão para excluir.', 'warning');
+          return;
+        }
         const id = $(this).data('id');
         const nome = $(this).data('nome');
 
@@ -276,8 +316,8 @@
               // Tratamento de erro
               let errorMessage;
               errorMessage = `Não é possível excluir essa matéria prima pois ela está relacionada com algum nutriente ou algum projeto`;
-              // Usa a função showErrorModal para mostrar o erro
-              showErrorModal(errorMessage);
+              // Usa a função showToast para mostrar o erro
+              showToast(errorMessage, 'error');
               return;
             }
 
@@ -288,7 +328,7 @@
           }).catch(error => {
             console.error('Erro ao tentar fazer fetch:', error);
             // Tratamento de erro de rede ou erro inesperado
-            showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+            showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
           });
         });
       }
@@ -297,6 +337,10 @@
 
       ///////////////GARANTIAS///////////////////////////
       $("#tabela-materiaPrima").on('click', '.btn-garantias', function () {
+        if (!hasPerm('garantia:consultarPorMateria_prima')) {
+          showToast('Sem permissão para consultar garantias.', 'warning');
+          return;
+        }
         const id = $(this).data('id');
         const materia_prima = data.find(item => item.id === id);
         exibirGarantias(materia_prima);
@@ -317,7 +361,7 @@
 
     }).catch(error => {
       // Tratamento de erro de rede ou erro inesperado
-      showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+      showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
     });//FIM GETAPI
 
     // FUNCOES AUXILIARES
@@ -331,8 +375,8 @@
             // Tratamento de erro
             let errorMessage;
             errorMessage = `${result.message || 'Erro desconhecido.'}`;
-            // Usa a função showErrorModal para mostrar o erro
-            showErrorModal(errorMessage);
+            // Usa a função showToast para mostrar o erro
+            showToast(errorMessage, 'error');
             return;
           }
 
@@ -340,7 +384,7 @@
           table.clear().rows.add(data).draw(); // Limpa a tabela, adiciona os novos dados e redesenha
         }).catch(error => {
           // Tratamento de erro de rede ou erro inesperado
-          showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+          showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
         });
       }
     })

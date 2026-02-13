@@ -64,7 +64,7 @@ const rotas = [{
     {
         'path': '/usuario/trocar-senha',
         'component': '/page/usuario.trocar-senha.html',
-        'key':'usuario:alterar'
+ 
     },
     {
         'path': '/configuracoes/configuracao-impressao',

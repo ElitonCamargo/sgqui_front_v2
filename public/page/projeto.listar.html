@@ -192,7 +192,7 @@
 
 
       } else {
-        alert('Por favor, preencha todos os campos.');
+        showToast('Por favor, preencha todos os campos.', 'warning');
       }
     });
 
@@ -228,15 +228,15 @@
           // Tratamento de erro
           let errorMessage;
           errorMessage = `${result.message || 'Erro desconhecido.'}`;
-          // Usa a função showErrorModal para mostrar o erro
-          showErrorModal(errorMessage);
+          // Usa a função showToast para mostrar o erro
+          showToast(errorMessage, 'error');
           return;
         }
         data = result.data; // Atualiza os dados com a resposta da requisição
         table.clear().rows.add(data).draw(); // Limpa a tabela, adiciona os novos dados e redesenha
       }).catch(error => {
         // Tratamento de erro de rede ou erro inesperado
-        showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+        showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
       });
 
     }
@@ -250,8 +250,8 @@
           // Tratamento de erro
           let errorMessage;
           errorMessage = `${result.message || 'Erro desconhecido.'}`;
-          // Usa a função showErrorModal para mostrar o erro
-          showErrorModal(errorMessage);
+          // Usa a função showToast para mostrar o erro
+          showToast(errorMessage, 'error');
           return;
         }
 
@@ -272,7 +272,7 @@
 
       }).catch(error => {
         // Tratamento de erro de rede ou erro inesperado
-        showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+        showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
       });
     })();
 
@@ -317,6 +317,11 @@
     //variavel de controle se algo foi alterado
     let alterado = 0;
 
+    const hasPerm = (key) => {
+      const permissoesSessao = getPermissoes();
+      return permissoesSessao && permissoesSessao[key] === true;
+    };
+
     req_GET(opt.urlProjeto).then((result) => {
 
       data = result.data;
@@ -324,8 +329,8 @@
         // Tratamento de erro
         let errorMessage;
         errorMessage = `${result.message || 'Erro desconhecido.'}`;
-        // Usa a função showErrorModal para mostrar o erro
-        //showErrorModal(errorMessage);
+        // Usa a função showToast para mostrar o erro
+        // showToast(errorMessage, 'error');
         data = null;
       }
 
@@ -378,12 +383,27 @@
             orderable: false,
 
             render: function (data, type, row) {
+              const botaoDetalhes = hasPerm('projeto:consultarPorId')
+                ? `<button class="btn btn-outline-secondary btn-sm btn-detalhes-editar" data-id="${row.id}" data-toggle="modal" data-target="#detalhesModal" title="${hasPerm('projeto:alterar') ? 'Ver/Editar' : 'Ver'}"><i class="fa-solid fa-eye"></i>${hasPerm('projeto:alterar') ? '/<i class=\"fa-solid fa-pen-to-square\"></i>' : ''}</button>`
+                : '';
+              const botaoClonar = hasPerm('projeto:duplicar')
+                ? `<button class="btn btn-outline-secondary btn-sm btn-clonar" data-id="${row.id}" data-nome="${row.nome}" data-toggle="modal" data-target="#clonarProjeto" title="Clonar Projeto"><i class="fa-solid fa-clone"></i></button>`
+                : '';
+              const botaoEtapas = hasPerm('etapa:consultarPorProjeto')
+                ? `<a href="/projeto/detalhado?id=${row.id}" class="btn btn-outline-secondary btn-sm btn-etapas" title="Etapas"><i class="fa-solid fa-tasks"></i></a>`
+                : '';
+              const botaoImprimir = hasPerm('projeto:consultarDetalhado')
+                ? `<a href="/page/projeto_impressao.html?id=${row.id}" class="btn btn-outline-secondary btn-sm btn-imprimir" title="Imprimir"><i class="fa-solid fa-print"></i></a>`
+                : '';
+              const botaoExcluir = hasPerm('projeto:deletar')
+                ? `<button class="btn btn-outline-secondary btn-sm btn-excluir" data-id="${row.id}" data-nome="${row.nome}" title="Excluir"><i class="fa-solid fa-ban"></i></button>`
+                : '';
               return `
-                          <button class="btn btn-outline-secondary btn-sm btn-detalhes-editar" data-id="${row.id}" data-toggle="modal" data-target="#detalhesModal" title="Ver/Editar"><i class="fa-solid fa-eye"></i>/<i class="fa-solid fa-pen-to-square"></i></button>
-                          <button class="btn btn-outline-secondary btn-sm btn-clonar" data-id="${row.id}" data-nome="${row.nome}" data-toggle="modal" data-target="#clonarProjeto" title="Clonar Projeto"><i class="fa-solid fa-clone"></i></button>
-                          <a href="/projeto/detalhado?id=${row.id}" class="btn btn-outline-secondary btn-sm btn-etapas" title="Etapas"><i class="fa-solid fa-tasks"></i></a>
-                          <a href="/page/projeto_impressao.html?id=${row.id}"  class="btn btn-outline-secondary btn-sm btn-imprimir" title="Imprimir"><i class="fa-solid fa-print"></i></a>
-                          <button class="btn btn-outline-secondary btn-sm btn-excluir" data-id="${row.id}" data-nome="${row.nome}" title="Excluir"><i class="fa-solid fa-ban"></i></button>
+                          ${botaoDetalhes}
+                          ${botaoClonar}
+                          ${botaoEtapas}
+                          ${botaoImprimir}
+                          ${botaoExcluir}
                           `;
             }
           },
@@ -554,10 +574,25 @@
 
         $('#detalhesProjeto').html(html);
         $('#detalhesModal').modal('show');
+
+        if (!hasPerm('projeto:alterar')) {
+          $('#btnEditar').addClass('d-none');
+          $('#btnSalvar').addClass('d-none');
+          $('.form-control').prop('readonly', true);
+          $('.form-select').prop('disabled', true);
+          $('.ck_aplicacao').prop('disabled', true);
+        } else {
+          $('#btnEditar').removeClass('d-none');
+          $('#btnSalvar').addClass('d-none');
+        }
       }
 
       // Adicionar evento de clique para o botão "Editar"
       $('#detalhesModal').on('click', '#btnEditar', function () {
+        if (!hasPerm('projeto:alterar')) {
+          showToast('Sem permissão para editar.', 'warning');
+          return;
+        }
         $('.form-control').prop('readonly', false);
         $('.form-select').prop('disabled', false);
         $('.ck_aplicacao').prop('disabled', false);
@@ -567,6 +602,11 @@
 
       // Adicionar evento de submit para o formulário de edição do projeto
       $('#formEditarProjeto').on('submit', function (event) {
+
+        if (!hasPerm('projeto:alterar')) {
+          showToast('Sem permissão para editar.', 'warning');
+          return;
+        }
 
         event.preventDefault(); // Impedir o envio padrão do formulário
         const jsonData = serializadoParaJSON($(this).serialize());
@@ -616,6 +656,10 @@
 
       // Adicionar evento de clique para o botão "Clonar"
       $('#tabela-projetos').on('click', '.btn-clonar', function () {
+        if (!hasPerm('projeto:duplicar')) {
+          showToast('Sem permissão para clonar.', 'warning');
+          return;
+        }
         const id = $(this).data('id');
         const nome = $(this).data('nome');
         // Exibe o modal de confirmação de exclusão com o nome do item
@@ -630,6 +674,10 @@
 
       // Adicionar evento de clique para o botão "Excluir"
       $('#tabela-projetos').on('click', '.btn-excluir', function () {
+        if (!hasPerm('projeto:deletar')) {
+          showToast('Sem permissão para excluir.', 'warning');
+          return;
+        }
         const id = $(this).data('id');
         const nome = $(this).data('nome');
         // Faça algo com o ID, como confirmar a exclusão do projeto
@@ -638,7 +686,7 @@
 
     }).catch(error => {
       // Tratamento de erro de rede ou erro inesperado
-      showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+      showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
     });//FIM GETAPI
 
     // FUNCOES AUXILIARES
@@ -652,8 +700,8 @@
           // Tratamento de erro
           let errorMessage;
           errorMessage = `${result.message || 'Erro desconhecido.'}`;
-          // Usa a função showErrorModal para mostrar o erro
-          showErrorModal(errorMessage);
+          // Usa a função showToast para mostrar o erro
+          showToast(errorMessage, 'error');
           return;
         }
         // fecha modal
@@ -663,7 +711,7 @@
 
       }).catch(error => {
         // Tratamento de erro de rede ou erro inesperado
-        showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+        showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
       });
 
     }
@@ -682,8 +730,8 @@
             // Tratamento de erro
             let errorMessage;
             errorMessage = `${result.message || 'Erro desconhecido.'}`;
-            // Usa a função showErrorModal para mostrar o erro
-            showErrorModal(errorMessage);
+            // Usa a função showToast para mostrar o erro
+            showToast(errorMessage, 'error');
             return;
           }
 
@@ -696,7 +744,7 @@
 
         }).catch(error => {
           // Tratamento de erro de rede ou erro inesperado
-          showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+          showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
         });
       });
     }
@@ -714,8 +762,8 @@
             // Tratamento de erro
             let errorMessage;
             errorMessage = `${result.message || 'Erro desconhecido.'}`;
-            // Usa a função showErrorModal para mostrar o erro
-            showErrorModal(errorMessage);
+            // Usa a função showToast para mostrar o erro
+            showToast(errorMessage, 'error');
             return;
           }
 
@@ -725,7 +773,7 @@
 
         }).catch(error => {
           // Tratamento de erro de rede ou erro inesperado
-          showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+          showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
         });
 
       }

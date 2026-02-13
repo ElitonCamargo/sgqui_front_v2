@@ -262,21 +262,6 @@ const req_DELETE = async (url = '', preload = false) => {
 }
 
 
-// Função para abrir o modal com a mensagem de erro
-const showErrorModal = (errorMessage) => {
-    // Define a mensagem de erro no modal
-    document.getElementById('modalErrorMessage').textContent = errorMessage;
-
-    // Abre o modal
-    const modal = new bootstrap.Modal(document.getElementById('errorModal'));
-    modal.show();
-
-    $('#errorModal').on('hidden.bs.modal', function () {
-        $('.modal').modal('hide'); // Fecha todos os modais abertos
-    });
-};
-
-
 // TRATAMENTO DE AVATAR
 const AVATAR_DEFAULT_SRC = '/assets/img/user-default.png';
 
@@ -382,7 +367,7 @@ const configurarPreviewAvatar = (inputSelector, previewSelector, options = {}) =
 
         const validacao = validarArquivoAvatar(file, options);
         if (!validacao.ok) {
-            showErrorModal(validacao.message);
+            showToast(validacao.message, 'error');
             $(this).val('');
             return;
         }
@@ -575,7 +560,7 @@ const setConfig = async (id, key, value) => {
         if (!result.success) {
             // Tratamento de erro
             let errorMessage = `${result.message || 'Erro desconhecido.'}`;
-            showErrorModal(errorMessage);
+            showToast(errorMessage, 'error');
             return; // Retorna vazio em caso de erro
         }
 
@@ -583,14 +568,14 @@ const setConfig = async (id, key, value) => {
 
     } catch (error) {
         // Tratamento de erro de rede ou erro inesperado
-        showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+        showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
         return; // Retorna vazio em caso de erro
     }
 };
 
 const showError = (codErro, codStatus) => {
 
-    alert(`Erro ${codErro}: ${erro[codErro]}`);
+    showToast(`Erro ${codErro}: ${erro[codErro]}`, 'error');
 
     if (codStatus === 498) {
         destroySession('tk');
@@ -766,7 +751,7 @@ async function carregaCardsHome() {
         if (logoffButton) {
             logoffButton.addEventListener('click', () => {
                 // Adicione a lógica de logoff aqui
-                alert('Você foi desconectado.');
+                showToast('Você foi desconectado.', 'info');
             });
         }
 
@@ -867,13 +852,13 @@ async function carregarPerfisUsuario(usuarioId) {
 function trocarPerfilAtivo(perfilSelecionado, todosOsPerfis) {
 
     if (!perfilSelecionado || !perfilSelecionado.id) {
-        showErrorModal('Perfil inválido.');
+        showToast('Perfil inválido.', 'error');
         return;
     }
 
     const perfilValido = todosOsPerfis.find(p => p.id === perfilSelecionado.id);
     if (!perfilValido) {
-        showErrorModal('Perfil inválido ou não disponível.');
+        showToast('Perfil inválido ou não disponível.', 'error');
         return;
     }
 
@@ -897,10 +882,18 @@ function trocarPerfilAtivo(perfilSelecionado, todosOsPerfis) {
 }
 
 function showToast(message, type = 'info') {
+    const typeConfig = {
+        'success': { bg: 'success', title: 'Sucesso' },
+        'error': { bg: 'danger', title: 'Erro' },
+        'warning': { bg: 'warning', title: 'Atenção' },
+        'info': { bg: 'info', title: 'Informação' }
+    };
+    const config = typeConfig[type] || typeConfig['info'];
+    
     const toast = $(`
         <div class="toast position-fixed top-0 end-0 m-3" role="alert" style="z-index: 9999;">
-            <div class="toast-header bg-${type === 'success' ? 'success' : 'info'} text-white">
-                <strong class="me-auto">${type === 'success' ? 'Sucesso' : 'Informação'}</strong>
+            <div class="toast-header bg-${config.bg} text-white">
+                <strong class="me-auto">${config.title}</strong>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
             </div>
             <div class="toast-body">${message}</div>
@@ -908,7 +901,7 @@ function showToast(message, type = 'info') {
     `);
 
     $('body').append(toast);
-    const bsToast = new bootstrap.Toast(toast[0]);
+    const bsToast = new bootstrap.Toast(toast[0], { autohide: true, delay: 3000 });
     bsToast.show();
 
     toast.on('hidden.bs.toast', function () {

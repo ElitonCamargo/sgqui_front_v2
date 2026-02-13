@@ -277,13 +277,13 @@
                     // Tratamento de erro
                     let errorMessage;
                     errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                    // Usa a função showErrorModal para mostrar o erro
-                    showErrorModal(errorMessage);
+                    // Usa a função showToast para mostrar o erro
+                    showToast(errorMessage, 'error');
                     return;
                 }
             }).catch(error => {
                 // Tratamento de erro de rede ou erro inesperado
-                showErrorModal(`1 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                showToast(`1 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
             });
         }
     });
@@ -330,13 +330,13 @@
                         // Tratamento de erro
                         let errorMessage;
                         errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                        // Usa a função showErrorModal para mostrar o erro
-                        showErrorModal(errorMessage);
+                        // Usa a função showToast para mostrar o erro
+                        showToast(errorMessage, 'error');
                         return;
                     }
                 }).catch(error => {
                     // Tratamento de erro de rede ou erro inesperado
-                    showErrorModal(`2 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                    showToast(`2 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
                 });
 
 
@@ -354,8 +354,8 @@
                 // Tratamento de erro
                 let errorMessage;
                 errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                // Usa a função showErrorModal para mostrar o erro
-                showErrorModal(errorMessage);
+                // Usa a função showToast para mostrar o erro
+                showToast(errorMessage, 'error');
                 return;
             }
 
@@ -390,7 +390,7 @@
 
         }).catch(error => {
             // Tratamento de erro de rede ou erro inesperado
-            showErrorModal(`03 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+            showToast(`03 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
         });
     };
 
@@ -579,8 +579,8 @@
                     // Tratamento de erro
                     let errorMessage;
                     errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                    // Usa a função showErrorModal para mostrar o erro
-                    showErrorModal(errorMessage);
+                    // Usa a função showToast para mostrar o erro
+                    showToast(errorMessage, 'error');
                     return;
                 }
 
@@ -589,7 +589,7 @@
 
             }).catch(error => {
                 // Tratamento de erro de rede ou erro inesperado
-                showErrorModal(`04 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                showToast(`04 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
             });
         }
     }).autocomplete("widget").css("z-index", "9999");
@@ -653,15 +653,15 @@
                 // Tratamento de erro
                 let errorMessage;
                 errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                // Usa a função showErrorModal para mostrar o erro
-                showErrorModal(errorMessage);
+                // Usa a função showToast para mostrar o erro
+                showToast(errorMessage, 'error');
                 return;
             }
             projeto_detalhado();
 
         }).catch(error => {
             // Tratamento de erro de rede ou erro inesperado
-            showErrorModal(`05 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+            showToast(`05 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
         });
 
         setTimeout(() => {
@@ -714,8 +714,8 @@
                 // Tratamento de erro
                 let errorMessage;
                 errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                // Usa a função showErrorModal para mostrar o erro
-                showErrorModal(errorMessage);
+                // Usa a função showToast para mostrar o erro
+                showToast(errorMessage, 'error');
                 return;
             }
 
@@ -723,7 +723,7 @@
 
         }).catch(error => {
             // Tratamento de erro de rede ou erro inesperado
-            showErrorModal(`06 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+            showToast(`06 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
         });
     })();
 
@@ -758,8 +758,8 @@
                 // Tratamento de erro
                 let errorMessage;
                 errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                // Usa a função showErrorModal para mostrar o erro
-                showErrorModal(errorMessage);
+                // Usa a função showToast para mostrar o erro
+                showToast(errorMessage, 'error');
                 return;
             }
 
@@ -767,7 +767,7 @@
 
         }).catch(error => {
             // Tratamento de erro de rede ou erro inesperado
-            showErrorModal(`07 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+            showToast(`07 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
         });
 
         setTimeout(() => {
@@ -799,8 +799,8 @@
                     // Tratamento de erro
                     let errorMessage;
                     errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                    // Usa a função showErrorModal para mostrar o erro
-                    showErrorModal(errorMessage);
+                    // Usa a função showToast para mostrar o erro
+                    showToast(errorMessage, 'error');
                     return;
                 }
 
@@ -808,7 +808,7 @@
 
             }).catch(error => {
                 // Tratamento de erro de rede ou erro inesperado
-                showErrorModal(`08 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                showToast(`08 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
             });
         }
         setTimeout(() => {
@@ -832,8 +832,8 @@
                     // Tratamento de erro
                     let errorMessage;
                     errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                    // Usa a função showErrorModal para mostrar o erro
-                    showErrorModal(errorMessage);
+                    // Usa a função showToast para mostrar o erro
+                    showToast(errorMessage, 'error');
                     return;
                 }
 
@@ -850,7 +850,7 @@
                 $('#modalEtapas').modal('show');
             }).catch(error => {
                 // Tratamento de erro de rede ou erro inesperado
-                showErrorModal(`09 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                showToast(`09 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
             });
 
         } else {
@@ -889,8 +889,8 @@
                         // Tratamento de erro
                         let errorMessage;
                         errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                        // Usa a função showErrorModal para mostrar o erro
-                        showErrorModal(errorMessage);
+                        // Usa a função showToast para mostrar o erro
+                        showToast(errorMessage, 'error');
                         return;
                     }
                     projeto_detalhado()
@@ -898,7 +898,7 @@
                     $('#modalEtapas').modal('hide');
                 }).catch(error => {
                     // Tratamento de erro de rede ou erro inesperado
-                    showErrorModal(`10 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                    showToast(`10 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
                 });
             } else {
                 // Envia requisição de criação
@@ -909,8 +909,8 @@
                         // Tratamento de erro
                         let errorMessage;
                         errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                        // Usa a função showErrorModal para mostrar o erro
-                        showErrorModal(errorMessage);
+                        // Usa a função showToast para mostrar o erro
+                        showToast(errorMessage, 'error');
                         return;
                     }
                     projeto_detalhado()
@@ -918,7 +918,7 @@
                     $('#modalEtapas').modal('hide');
                 }).catch(error => {
                     // Tratamento de erro de rede ou erro inesperado
-                    showErrorModal(`11 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                    showToast(`11 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
                 });
             }
         });
@@ -944,8 +944,8 @@
                     // Tratamento de erro
                     let errorMessage;
                     errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                    // Usa a função showErrorModal para mostrar o erro
-                    showErrorModal(errorMessage);
+                    // Usa a função showToast para mostrar o erro
+                    showToast(errorMessage, 'error');
                     return;
                 }
 
@@ -954,7 +954,7 @@
 
             }).catch(error => {
                 // Tratamento de erro de rede ou erro inesperado
-                showErrorModal(`12  - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                showToast(`12  - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
             });
         }
     }

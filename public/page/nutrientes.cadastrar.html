@@ -59,8 +59,8 @@
             // Tratamento de erro
             let errorMessage;
             errorMessage = `${result.message || 'Erro desconhecido.'}`;
-            // Usa a função showErrorModal para mostrar o erro
-            showErrorModal(errorMessage);
+            // Usa a função showToast para mostrar o erro
+            showToast(errorMessage, 'error');
             return;
           }
 
@@ -72,7 +72,7 @@
         })
         .catch(error => {
           // Tratamento de erro de rede ou erro inesperado
-          showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+          showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
         });
     });
 

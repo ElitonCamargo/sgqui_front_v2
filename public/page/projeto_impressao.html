@@ -463,7 +463,7 @@
             const valorSelecionado = select.value;
 
             if (valorSelecionado === '') {
-                alert('Por favor, selecione uma análise.');
+                showToast('Por favor, selecione uma análise.', 'warning');
                 return;
             }
 
@@ -527,7 +527,7 @@
                 if (base64Image) {
                     $('#print-logo').attr('src', base64Image.value).show();  // Atribui o valor correto ao src
                 } else {
-                    alert('Imagem não encontrada no banco.');
+                    showToast('Imagem não encontrada no banco.', 'warning');
                 }
             } catch (error) {
                 console.error("Erro ao carregar a imagem:", error);

@@ -35,6 +35,15 @@
 </style>
 <script>
     $(function () {
+        const hasPerm = (key) => {
+            const permissoesSessao = getPermissoes();
+            return permissoesSessao && permissoesSessao[key] === true;
+        };
+
+        if (!hasPerm('garantia:cadastrar')) {
+            $('.garantiaCadastra').addClass('d-none');
+        }
+
         // Recuperar o objeto 'materia_prima' do data-* atributo
         const idMateriaPrima = $('#modalGarantias').data('materiaPrimaId');
 
@@ -45,6 +54,12 @@
         $("#nutriente").autocomplete({
             source: function (request, result) {
                 let searchTerm = removeAcento(request.term.toLowerCase());
+
+                if (!hasPerm('garantia:consultarPorNutriente')) {
+                    showToast('Sem permissão para consultar nutrientes.', 'warning');
+                    result([]);
+                    return;
+                }
 
                 req_GET(`${opt.urlNutriente}?nome=${searchTerm}`)
                     .then(result => {
@@ -72,13 +87,17 @@
                         result(filteredSuggestions);
                     })
                     .catch(function (error) {
-                        alert("Erro14: Erro ao buscar no autocomplete de nutrientes");
+                        showToast("Erro14: Erro ao buscar no autocomplete de nutrientes", 'error');
                     });
             },
             select: function (event, ui) {
                 $(".garantiaCadastra").off("click", "#btnGarantiaCadastra");
 
                 $(".garantiaCadastra").on("click", "#btnGarantiaCadastra", function () {
+                    if (!hasPerm('garantia:cadastrar')) {
+                        showToast('Sem permissão para cadastrar garantia.', 'warning');
+                        return;
+                    }
                     let data = {};
                     let garantia = parseFloat($("#garantia").val());
 
@@ -92,10 +111,10 @@
                         if (ui.item.idMateriaPrima && ui.item.idNutriente) {
                             cadastraGarantia(data);
                         } else {
-                            alert("Erro12: Erro ao selecionar o nutriente");
+                            showToast("Erro12: Erro ao selecionar o nutriente", 'error');
                         }
                     } else {
-                        alert("Erro13: Erro ao selecionar valor da garantia");
+                        showToast("Erro13: Erro ao selecionar valor da garantia", 'error');
                     }
                 });
             }
@@ -106,6 +125,10 @@
 
         // exclui garantia
         $("#tbGarantias").on("click", ".btn-excluir-garantia", function () {
+            if (!hasPerm('garantia:deletar')) {
+                showToast('Sem permissão para excluir garantia.', 'warning');
+                return;
+            }
             let id = "";
             id = $(this).data('id');
             excluiGarantia(id)
@@ -117,6 +140,11 @@
         function carregaGarantias() {
             $('#tbGarantias tbody').empty()
 
+            if (!hasPerm('garantia:consultarPorMateria_prima')) {
+                showToast('Sem permissão para consultar garantias.', 'warning');
+                return;
+            }
+
 
             req_GET(opt.urlGarantiaMateriaPrima + `/${idMateriaPrima}`).then(result => {
 
@@ -126,8 +154,8 @@
                     // Tratamento de erro
                     let errorMessage;
                     errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                    // Usa a função showErrorModal para mostrar o erro
-                    // showErrorModal(errorMessage);
+                    // Usa a função showToast para mostrar o erro
+                    // showToast(errorMessage, 'error');
 
                     data = [];
                 }
@@ -140,7 +168,7 @@
                                         <tr>
                                             <td>${nutriente.nutriente_Nome}</td>
                                             <td>${nutriente.garantia_Percentual}</td>
-                                            <td><button class="btn btn-outline-secondary btn-sm btn-excluir-garantia" data-id="${nutriente.garantia_Id}" ><i class="fa-solid fa-ban"></i></button></td>
+                                            <td>${hasPerm('garantia:deletar') ? `<button class=\"btn btn-outline-secondary btn-sm btn-excluir-garantia\" data-id=\"${nutriente.garantia_Id}\" ><i class=\"fa-solid fa-ban\"></i></button>` : ''}</td>
                                         </tr>
                                         `
                 });
@@ -149,7 +177,7 @@
 
             }).catch(error => {
                 // Tratamento de erro de rede ou erro inesperado
-                showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
             });
         }
 
@@ -161,8 +189,8 @@
                         // Tratamento de erro
                         let errorMessage;
                         errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                        // Usa a função showErrorModal para mostrar o erro
-                        showErrorModal(errorMessage);
+                        // Usa a função showToast para mostrar o erro
+                        showToast(errorMessage, 'error');
                         return;
                     }
 
@@ -170,7 +198,7 @@
 
                 }).catch(error => {
                     // Tratamento de erro de rede ou erro inesperado
-                    showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                    showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
                 });
         }
 
@@ -181,15 +209,15 @@
                         // Tratamento de erro
                         let errorMessage;
                         errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                        // Usa a função showErrorModal para mostrar o erro
-                        showErrorModal(errorMessage);
+                        // Usa a função showToast para mostrar o erro
+                        showToast(errorMessage, 'error');
                         return;
                     }
                     carregaGarantias();
 
                 }).catch(error => {
                     // Tratamento de erro de rede ou erro inesperado
-                    showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                    showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
                 });
         }
 

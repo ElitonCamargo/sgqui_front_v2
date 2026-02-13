@@ -53,7 +53,7 @@
 
       // Verifica se houve um erro na requisição
       if (result.status !== 200 || !result.success) {
-        showErrorModal(`Erro ao buscar dados: ${result.message || 'Erro desconhecido.'}`);
+        showToast(`Erro ao buscar dados: ${result.message || 'Erro desconhecido.'}`, 'error');
         return; // Sai da função se houver erro
       }
 
@@ -193,7 +193,7 @@
       //         $('#detalhesModal #btnSalvreq_PUTde();
       //         alterado = 1
       //       } else {
-      //         alert(`Erro: ${result.erro.message}`);
+      //         showToast(`Erro: ${result.erro.message}`, 'error');
       //       }
       //     });
       // });

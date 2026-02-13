@@ -17,8 +17,8 @@ const opt = {
   "usuario": `${urlApi}/usuario`,
   "urlPerfis": `${urlApi}/rbac/perfis`,
   "urlUsuarioPerfis": `${urlApi}/rbac/usuario_perfis`,
-  "urlPermissoes": `${urlApi}/rbac/permissoes`,
-  "urlPermissoesPorIdPerfil": `${urlApi}/rbac/perfil_permissoes/perfil`,
+  "urlPerfilPermissoes": `${urlApi}/rbac/perfil_permissoes`,
+  "urlPermissoesPorIdPerfil": `${urlApi}/rbac/perfil_permissoes/acessos`,
   "urlPerfilPermissoes": `${urlApi}/rbac/perfil_permissoes`,
   "urlTrocarPerfil": `${urlApi}/usuario/perfil/trocar`
 }

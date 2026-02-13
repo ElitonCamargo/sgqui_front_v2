@@ -85,6 +85,17 @@
         let table;
         let alterado = 0;
         let vinculosAtuais = [];
+        const sessionUs = getSessionData('us') || {};
+        const usuarioLogadoId = sessionUs && sessionUs.id ? String(sessionUs.id) : null;
+
+        const hasPerm = (key) => {
+            const permissoesSessao = getPermissoes();
+            return permissoesSessao && permissoesSessao[key] === true;
+        };
+
+        if (!hasPerm('usuario:cadastrar')) {
+            $('#btnCadastrarUsuario, .btn-cadastrar-usuario').addClass('d-none');
+        }
 
         req_GET(opt.urlUsuario).then((result) => {
 
@@ -92,8 +103,8 @@
                 // Tratamento de erro
                 let errorMessage;
                 errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                // Usa a função showErrorModal para mostrar o erro
-                showErrorModal(errorMessage);
+                // Usa a função showToast para mostrar o erro
+                showToast(errorMessage, 'error');
                 return;
             }
 
@@ -149,9 +160,20 @@
                             orderable: false,
 
                             render: function (data, type, row) {
+                                const isLogado = usuarioLogadoId && String(row.id) === usuarioLogadoId;
+                                const canView = isLogado ? hasPerm('usuario:consultarLogado') : hasPerm('usuario:consultarPorId');
+                                const canEdit = isLogado ? hasPerm('usuario:alterarPerfilLogado') : hasPerm('usuario:alterar');
+                                const canDelete = isLogado ? hasPerm('usuario:deletarPerfilLogado') : hasPerm('usuario:deletar');
+
+                                const botaoDetalhes = canView
+                                    ? `<button class="btn btn-outline-secondary btn-sm btn-detalhes-editar" data-id="${row.id}" data-toggle="modal" data-target="#detalhesModal" title="${canEdit ? 'Ver/Editar' : 'Ver'}"><i class="fa-solid fa-eye"></i>${canEdit ? '/<i class=\"fa-solid fa-pen-to-square\"></i>' : ''}</button>`
+                                    : '';
+                                const botaoExcluir = canDelete
+                                    ? `<button class="btn btn-outline-secondary btn-sm btn-excluir" data-id="${row.id}" data-nome="${row.nome}" title="Excluir"><i class="fa-solid fa-ban"></i></button>`
+                                    : '';
                                 return `
-                              <button class="btn btn-outline-secondary btn-sm btn-detalhes-editar" data-id="${row.id}" data-toggle="modal" data-target="#detalhesModal" title="Ver/Editar"><i class="fa-solid fa-eye"></i>/<i class="fa-solid fa-pen-to-square"></i></button>
-                              <button class="btn btn-outline-secondary btn-sm btn-excluir" data-id="${row.id}" data-nome="${row.nome}" title="Excluir"><i class="fa-solid fa-ban"></i></button>
+                              ${botaoDetalhes}
+                              ${botaoExcluir}
                           `;
                             }
                         },
@@ -186,6 +208,12 @@
                 //Abre modal de visualização e edição de usuario
                 $('#tabela-usuario').on('click', '.btn-detalhes-editar', function () {
                     const id = $(this).data('id');
+                    const isLogado = usuarioLogadoId && String(id) === usuarioLogadoId;
+                    const canView = isLogado ? hasPerm('usuario:consultarLogado') : hasPerm('usuario:consultarPorId');
+                    if (!canView) {
+                        showToast('Sem permissão para consultar usuário.', 'warning');
+                        return;
+                    }
                     const usuario = data.find(item => item.id === id);
                     exibirDetalhes(usuario);
                 });
@@ -193,6 +221,11 @@
 
                 // Função para exibir os detalhes em um modal
                 function exibirDetalhes(usuario) {
+                    const isLogado = usuarioLogadoId && String(usuario.id) === usuarioLogadoId;
+                    const canEdit = isLogado ? hasPerm('usuario:alterarPerfilLogado') : hasPerm('usuario:alterar');
+                    const canViewPerfis = isLogado ? hasPerm('usuario_perfis:listarDoUsuarioLogado') : hasPerm('usuario_perfis:listarPerfisPorUsuario');
+                    const canVincular = hasPerm('usuario_perfis:vincular');
+                    const canDesvincular = hasPerm('usuario_perfis:desvincular');
                     const avatarSrc = usuario.avatar ? usuario.avatar : AVATAR_DEFAULT_SRC;
                     let html = `
                 <div class="form-group">
@@ -217,11 +250,14 @@
                       <label for="senha">Nova senha:</label>
                       <input type="password" class="form-control" id="senha" name="senha" placeholder="******" readonly minlength="6">
                     </div>
-                    <div class="form-group">
+                    ${canViewPerfis ? `<div class="form-group" id="perfisEditSection">
                       <label class="form-label">Perfis:</label>
                       <div id="perfisEditContainer" class="border rounded p-2" style="max-height: 220px; overflow-y: auto;"></div>
-                    </div>
+                    </div>` : ''}
                     <input type="hidden" id="id" name="id" value="${usuario.id}">
+                    <input type="hidden" id="canViewPerfis" value="${canViewPerfis}">
+                    <input type="hidden" id="canVincular" value="${canVincular}">
+                    <input type="hidden" id="canDesvincular" value="${canDesvincular}">
                     <input type="hidden" id="perfilVinculoId" name="perfilVinculoId" value="">
                     <input type="hidden" id="perfilAtualId" name="perfilAtualId" value="">
                 </div>
@@ -231,28 +267,51 @@
                     $('#detalhesModal').modal('show');
                     configurarPreviewAvatar('#avatarInputEdit', '#previewAvatarEdit');
 
-                    carregarVinculoUsuario(usuario.id).then(({ vinculos, perfilIds }) => {
-                        vinculosAtuais = vinculos;
-                        return carregarPerfisEdicao(perfilIds);
-                    }).catch(error => {
-                        showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
-                    });
+                    if (!canEdit && !isLogado) {
+                        // Não é usuário logado e não tem permissão: bloqueia tudo
+                        $('#btnEditar').addClass('d-none');
+                        $('#btnSalvar').addClass('d-none');
+                        $('#avatarInputEdit').prop('disabled', true);
+                        $('.form-control').prop('readonly', true);
+                    } else if (isLogado && !canEdit) {
+                        // É usuário logado mas sem permissão completa: permite apenas senha e avatar
+                        $('#nome').prop('readonly', true);
+                        $('#email').prop('readonly', true);
+                    }
+
+                    if (canViewPerfis) {
+                        carregarVinculoUsuario(usuario.id).then(({ vinculos, perfilIds }) => {
+                            vinculosAtuais = vinculos;
+                            return carregarPerfisEdicao(perfilIds);
+                        }).catch(error => {
+                            showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
+                        });
+                    }
                 }
 
                 function carregarPerfisEdicao(selectedIds) {
                     return req_GET(opt.urlPerfis).then(result => {
                         if (!result.success) {
-                            showErrorModal(result.message || 'Erro ao carregar perfis.');
+                            showToast(result.message || 'Erro ao carregar perfis.', 'error');
                             return;
                         }
 
+                        const canViewPerfis = $('#canViewPerfis').val() === 'true';
+                        if (!canViewPerfis) return;
+
+                        const isLogado = usuarioLogadoId && String($('#id').val()) === usuarioLogadoId;
+                        const canEdit = isLogado ? hasPerm('usuario:alterarPerfilLogado') : hasPerm('usuario:alterar');
+                        const canVincular = $('#canVincular').val() === 'true';
+                        const canDesvincular = $('#canDesvincular').val() === 'true';
+                        const canManagePerfis = canVincular && canDesvincular;
                         const container = $('#perfisEditContainer').empty();
                         const selecionados = new Set((selectedIds || []).map(String));
                         (result.data || []).forEach(p => {
                             const checked = selecionados.has(String(p.id)) ? 'checked' : '';
+                            const disabled = (canEdit && canManagePerfis) ? '' : 'disabled';
                             const item = $(`
                   <div class="form-check">
-                    <input class="form-check-input perfil-checkbox-edit" type="checkbox" id="perfil_edit_${p.id}" value="${p.id}" ${checked}>
+                    <input class="form-check-input perfil-checkbox-edit" type="checkbox" id="perfil_edit_${p.id}" value="${p.id}" ${checked} ${disabled}>
                     <label class="form-check-label" for="perfil_edit_${p.id}">${p.nome}</label>
                   </div>
                 `);
@@ -291,9 +350,41 @@
 
                 // Adicionar evento de clique para o botão "Editar"
                 $('#detalhesModal').on('click', '#btnEditar', function () {
-                    $('.form-control').prop('readonly', false);
-                    $('#perfisEditContainer .perfil-checkbox-edit').prop('disabled', false);
-                    $('#avatarInputEdit').prop('disabled', false);
+                    const userId = String($('#id').val() || '');
+                    const isLogado = usuarioLogadoId && userId === usuarioLogadoId;
+                    const canEdit = isLogado ? hasPerm('usuario:alterarPerfilLogado') : hasPerm('usuario:alterar');
+                    
+                    // Se não é usuário logado e não tem permissão, bloqueia
+                    if (!canEdit && !isLogado) {
+                        showToast('Sem permissão para editar usuário.', 'warning');
+                        return;
+                    }
+                    
+                    const canVincular = $('#canVincular').val() === 'true';
+                    const canDesvincular = $('#canDesvincular').val() === 'true';
+                    const canManagePerfis = canVincular && canDesvincular;
+                    
+                    // Usuário logado sempre pode editar senha e avatar
+                    if (isLogado) {
+                        $('#senha').prop('readonly', false);
+                        $('#avatarInputEdit').prop('disabled', false);
+                        
+                        // Nome e email só libera se tiver permissão
+                        if (canEdit) {
+                            $('#nome').prop('readonly', false);
+                            $('#email').prop('readonly', false);
+                        }
+                    } else if (canEdit) {
+                        // Outro usuário com permissão: libera tudo
+                        $('.form-control').prop('readonly', false);
+                        $('#avatarInputEdit').prop('disabled', false);
+                    }
+                    
+                    // Perfis só se tiver permissão
+                    if (canManagePerfis) {
+                        $('#perfisEditContainer .perfil-checkbox-edit').prop('disabled', false);
+                    }
+                    
                     $('#btnEditar').addClass('d-none');
                     $('#btnSalvar').removeClass('d-none');
                 });
@@ -304,23 +395,51 @@
                     event.preventDefault(); // Impedir o envio padrão do formulário
                     const jsonData = serializadoParaJSON($(this).serialize());
 
+                    const userId = String(jsonData.id || '');
+                    const isLogado = usuarioLogadoId && userId === usuarioLogadoId;
+                    const canEdit = isLogado ? hasPerm('usuario:alterarPerfilLogado') : hasPerm('usuario:alterar');
+                    
+                    // Se não é usuário logado e não tem permissão, bloqueia
+                    if (!canEdit && !isLogado) {
+                        showToast('Sem permissão para editar usuário.', 'warning');
+                        return;
+                    }
+                    
+                    // Se é usuário logado sem permissão completa, remove campos que não pode editar
+                    if (isLogado && !canEdit) {
+                        delete jsonData.nome;
+                        delete jsonData.email;
+                    }
+
                     if (!jsonData.senha || String(jsonData.senha).trim() === '') {
                         delete jsonData.senha;
                     }
 
                     const usuarioId = parseInt(jsonData.id, 10);
-                    const selecionados = getPerfisSelecionadosEdicao();
+                    const canViewPerfis = $('#canViewPerfis').val() === 'true';
+                    const canVincular = $('#canVincular').val() === 'true';
+                    const canDesvincular = $('#canDesvincular').val() === 'true';
+                    const canManagePerfis = canVincular && canDesvincular;
+                    
+                    const selecionados = canViewPerfis && canManagePerfis ? getPerfisSelecionadosEdicao() : [];
                     const avatarFile = $('#avatarInputEdit')[0] ? $('#avatarInputEdit')[0].files[0] : null;
 
                     delete jsonData.perfilIdsEdit;
                     delete jsonData.perfilVinculoId;
                     delete jsonData.perfilAtualId;
+                    delete jsonData.canViewPerfis;
+                    delete jsonData.canVincular;
+                    delete jsonData.canDesvincular;
 
                     const atuaisIds = new Set(vinculosAtuais.map(v => String(v.perfilId)));
                     const selecionadosSet = new Set(selecionados);
 
-                    const paraRemover = vinculosAtuais.filter(v => !selecionadosSet.has(String(v.perfilId)) && v.vinculoId);
-                    const paraAdicionar = selecionados.filter(id => !atuaisIds.has(String(id)));
+                    const paraRemover = (canViewPerfis && canManagePerfis && canDesvincular) 
+                        ? vinculosAtuais.filter(v => !selecionadosSet.has(String(v.perfilId)) && v.vinculoId) 
+                        : [];
+                    const paraAdicionar = (canViewPerfis && canManagePerfis && canVincular) 
+                        ? selecionados.filter(id => !atuaisIds.has(String(id))) 
+                        : [];
 
                     const prepararAvatar = avatarFile ? obterAvatarBase64(avatarFile) : Promise.resolve(null);
 
@@ -335,8 +454,8 @@
                                 // Tratamento de erro
                                 let errorMessage;
                                 errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                                // Usa a função showErrorModal para mostrar o erro
-                                showErrorModal(errorMessage);
+                                // Usa a função showToast para mostrar o erro
+                                showToast(errorMessage, 'error');
                                 return;
                             }
 
@@ -370,7 +489,7 @@
                             alterado = 1;
                         }).catch(error => {
                             // Tratamento de erro de rede ou erro inesperado
-                            showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                            showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
                         });
                 });
 
@@ -387,6 +506,12 @@
                 $('#tabela-usuario').on('click', '.btn-excluir', function () {
                     const id = $(this).data('id');
                     const nome = $(this).data('nome');
+                    const isLogado = usuarioLogadoId && String(id) === usuarioLogadoId;
+                    const canDelete = isLogado ? hasPerm('usuario:deletarPerfilLogado') : hasPerm('usuario:deletar');
+                    if (!canDelete) {
+                        showToast('Sem permissão para excluir usuário.', 'warning');
+                        return;
+                    }
                     // Faça algo com o ID, como confirmar a exclusão do usuario
                     excluirUsuario(id, nome);
                 });
@@ -394,7 +519,7 @@
                 function excluirUsuario(id, nome) {
 
                     if (id == 1) {
-                        showErrorModal("Não é permitido excluir este usuário!");
+                        showToast("Não é permitido excluir este usuário!", 'error');
                         return;
                     }
                     // Exibe o modal de confirmação de exclusão com o nome do item
@@ -409,8 +534,8 @@
                                 // Tratamento de erro
                                 let errorMessage;
                                 errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                                // Usa a função showErrorModal para mostrar o erro
-                                showErrorModal(errorMessage);
+                                // Usa a função showToast para mostrar o erro
+                                showToast(errorMessage, 'error');
                                 return;
                             }
                             // Fecha o modal de confirmação de exclusão
@@ -418,7 +543,7 @@
                             alterado = 1;
                         }).catch(error => {
                             // Tratamento de erro de rede ou erro inesperado
-                            showErrorModal(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                            showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
                         });
                     });
                 }

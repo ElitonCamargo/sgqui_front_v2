@@ -131,7 +131,7 @@
             if (base64Image) {
                 $('#preview').attr('src', base64Image.value).show();  // Atribui o valor correto ao src
             } else {
-                alert('Imagem não encontrada no banco.');
+                showToast('Imagem não encontrada no banco.', 'error');
             }
         } catch (error) {
             console.error("Erro ao carregar a imagem:", error);
@@ -146,7 +146,7 @@
         let id = base64ImageBd.id;
 
         if (!file) {
-            alert('Por favor, selecione uma imagem.');
+            showToast('Por favor, selecione uma imagem.', 'warning');
             return;
         }
 

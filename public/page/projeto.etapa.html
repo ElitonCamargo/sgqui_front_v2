@@ -253,6 +253,11 @@
 
 <script>
 
+    const hasPerm = (key) => {
+        const permissoesSessao = getPermissoes();
+        return permissoesSessao && permissoesSessao[key] === true;
+    };
+
     //** Função resposável por esperar a DOM ser carregada **************************************************************************
 
     //** Ordenação das listas pai (etapas) **************************************************************************************
@@ -261,6 +266,10 @@
         opacity: 0.8,
         cursor: 'grabbing',
         update: function () {
+            if (!hasPerm('etapa:alterarOrdem')) {
+                showToast('Sem permissão para reordenar etapas.', 'warning');
+                return;
+            }
             let etapa_ordem = [];
             $('#etapa-list > li').each(function (index) {
                 let etapa = {
@@ -279,13 +288,13 @@
                     // Tratamento de erro
                     let errorMessage;
                     errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                    // Usa a função showErrorModal para mostrar o erro
-                    showErrorModal(errorMessage);
+                    // Usa a função showToast para mostrar o erro
+                    showToast(errorMessage, 'error');
                     return;
                 }
             }).catch(error => {
                 // Tratamento de erro de rede ou erro inesperado
-                showErrorModal(`1 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                showToast(`1 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
             });
         }
     });
@@ -298,6 +307,10 @@
             opacity: 0.8,
             cursor: 'grabbing',
             update: function (event, ui) {
+                    if (!hasPerm('etapa_mp:alterarOrdem')) {
+                        showToast('Sem permissão para reordenar matérias primas.', 'warning');
+                        return;
+                    }
                 let nutrientes_por_etapa = [];
                 $(".nutrientes-por-etapa").each(function () {
                     let etapa = {
@@ -332,13 +345,13 @@
                         // Tratamento de erro
                         let errorMessage;
                         errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                        // Usa a função showErrorModal para mostrar o erro
-                        showErrorModal(errorMessage);
+                        // Usa a função showToast para mostrar o erro
+                        showToast(errorMessage, 'error');
                         return;
                     }
                 }).catch(error => {
                     // Tratamento de erro de rede ou erro inesperado
-                    showErrorModal(`2 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                    showToast(`2 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
                 });
 
 
@@ -349,6 +362,11 @@
     //**  buscar os detalhes do projeto *********************************************************    
     const projeto_detalhado = (id_projeto = parseInt(getAllUrlParams()['id'])) => {
 
+        if (!hasPerm('projeto:consultarDetalhado')) {
+            showToast('Sem permissão para consultar detalhes do projeto.', 'warning');
+            return;
+        }
+
         //Consultar projetos detalhados......
         req_GET(opt.urlProjeto + `/detalhado/${id_projeto}`).then(result => {
 
@@ -356,8 +374,8 @@
                 // Tratamento de erro
                 let errorMessage;
                 errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                // Usa a função showErrorModal para mostrar o erro
-                showErrorModal(errorMessage);
+                // Usa a função showToast para mostrar o erro
+                showToast(errorMessage, 'error');
                 return;
             }
 
@@ -390,11 +408,15 @@
 
             // *************** Carregar etapas e nutrientes das etapas **********************************************
             $('#etapa-list').empty();  // Limpa listas de conteúdo
+            if (!hasPerm('etapa:consultarPorProjeto')) {
+                showToast('Sem permissão para consultar etapas do projeto.', 'warning');
+                return;
+            }
             projeto.etapas.forEach(criarEtapa);
 
         }).catch(error => {
             // Tratamento de erro de rede ou erro inesperado
-            showErrorModal(`03 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+            showToast(`03 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
         });
     };
 
@@ -460,12 +482,24 @@
     //**  criar o visual das etapas do projeto ************************************************************
     const criarEtapa = (etapa) => {
         if (etapa.id != null) {
+            const moverEtapaIcon = hasPerm('etapa:alterarOrdem')
+                ? '<i class="fa fa-arrows moverEtapa me-2"></i>'
+                : '';
+            const botaoExcluirEtapa = hasPerm('etapa:deletar')
+                ? `<button class="btn btn-outline-secondary btn-sm" data-id="${etapa.id}" title="excluir" style="float:right; cursor:pointer" onclick="excluirEtapa(${etapa.id})"><i class="fa fa-ban"></i></button>`
+                : '';
+            const botaoEditarEtapa = hasPerm('etapa:alterar')
+                ? `<button class="btn btn-outline-secondary btn-sm" data-id="${etapa.id}" title="editar" style="float:right; cursor:pointer" onclick="initModalEtapas(${etapa.id})"><i class="fa fa-edit"></i></button>`
+                : '';
+            const botaoAdicionarMp = hasPerm('etapa_mp:cadastrar')
+                ? `<button onclick="btn_AddMpNutriente(${etapa.id}, '${etapa.nome}')" type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalMpNutriente">Adicionar matéria prima</button>`
+                : '';
             const etapaItem = `
                 <li class="list-group-item" data-id="${etapa.id}">
                     <div class="row">
                         <div class="col-2">
                             <h5 type="button" class="float-start">
-                                <i class="fa fa-arrows moverEtapa me-2 "></i> <span  data-bs-toggle="collapse" data-bs-target="#etapa-${etapa.id}">${etapa.nome}</span> 
+                                ${moverEtapaIcon} <span  data-bs-toggle="collapse" data-bs-target="#etapa-${etapa.id}">${etapa.nome}</span> 
                             </h5>
                         </div>
                         <div class="col-2"></div>
@@ -474,8 +508,8 @@
                         <div class="col-2"></div>
                         <div class="col-2">
                             <i class="fa fa-chevron-down ms-2 toggle-icon float-end" style="float:right; cursor:pointer" data-bs-toggle="collapse" data-bs-target="#etapa-${etapa.id}"></i> 
-                            <button class="btn btn-outline-secondary btn-sm" data-id="${etapa.id}" title="excluir" style="float:right; cursor:pointer" onclick="excluirEtapa(${etapa.id})"><i class="fa fa-ban"></i></button> 
-                            <button class="btn btn-outline-secondary btn-sm" data-id="${etapa.id}" title="editar" style="float:right; cursor:pointer" onclick="initModalEtapas(${etapa.id})"><i class="fa fa-edit"></i></button> 
+                            ${botaoExcluirEtapa}
+                            ${botaoEditarEtapa}
                         </div>
     
                     </div>
@@ -485,7 +519,7 @@
                             <h6 class="card-title">${etapa.descricao}</h6>
                             <p class="fs-5 mt-2" style="display: flex; flex-direction: row; justify-content: space-between;">
                                 
-                                <button onclick="btn_AddMpNutriente(${etapa.id}, '${etapa.nome}')" type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalMpNutriente">Adicionar matéria prima</button>
+                                ${botaoAdicionarMp}
                             </p>
                             <table class="table" id="tableComposicaoEtapa${etapa.id}">
                                 <thead>
@@ -514,6 +548,9 @@
 
     //**  adicionar os matérias primas de cada etapa ******************************************************
     const addMateriaPrima = (etapa_mp, etapa_id) => {
+        if (!hasPerm('etapa_mp:consultarPorEtapa')) {
+            return '';
+        }
         let linhasEtapaEp = "";
         etapa_mp.forEach(e => {
             linhasEtapaEp += criarLinhaEtapaMp(e.id, e.materia_prima, e.percentual, e.tempo_agitacao, e.observacao, e.lote, e.ordem, etapa_id);
@@ -524,17 +561,24 @@
     //**  criar as linhas para a função  addMateriaPrima() *************************************************
     const criarLinhaEtapaMp = (idMp, nomeMp, percentualMp, tempoAgitacao, observacao, lote, ordem, etapa_id) => {
         let densidade = parseFloat($("#detalhesProjeto_densidade").text());
+        const moverNutrienteIcon = hasPerm('etapa_mp:alterarOrdem')
+            ? '<i class="fa fa-arrows moverNutriente"></i>'
+            : '';
+        const readOnlyAttr = hasPerm('etapa_mp:alterar') ? '' : 'readonly';
+        const botaoExcluirMp = hasPerm('etapa_mp:deletar')
+            ? `<button type="button" class="btn btn-outline-secondary btn-sm deleteComposicao" title="excluir" data-id="${idMp}" onclick="excluiComposicao(${idMp},${etapa_id})"><i class="fa fa-ban"></i></button>`
+            : '';
         let cols = `
                     <tr id="nutriente_${idMp}"  data-id="${idMp}">
-                        <td><i class="fa fa-arrows moverNutriente"></i></td>
+                        <td>${moverNutrienteIcon}</td>
                         <td>${nomeMp}</td>
-                        <td><input type="text" class="percentual" value="${percentualMp.toFixed(4)}"  data-id="${idMp}"></td>
+                        <td><input type="text" class="percentual" value="${percentualMp.toFixed(4)}"  data-id="${idMp}" ${readOnlyAttr}></td>
                         <td><label class="peso">${calculaPeso(percentualMp, densidade)}</label></td>
-                        <td><input type="text" class="tempo_agitacao" value="${tempoAgitacao}"  data-id="${idMp}"></td>
+                        <td><input type="text" class="tempo_agitacao" value="${tempoAgitacao}"  data-id="${idMp}" ${readOnlyAttr}></td>
                     
-                        <td><input type="text" class="lote" value="${lote}"  data-id="${idMp}"></td>
+                        <td><input type="text" class="lote" value="${lote}"  data-id="${idMp}" ${readOnlyAttr}></td>
                         <td style="min-width: 100px">
-                            <button type="button" class="btn btn-outline-secondary btn-sm deleteComposicao" title="excluir" data-id="${idMp}" onclick="excluiComposicao(${idMp},${etapa_id})"><i class="fa fa-ban"></i></button>
+                            ${botaoExcluirMp}
                         </td>
                     </tr>`;
         return cols;
@@ -554,6 +598,11 @@
     // Função para a Inicialização do auto-complete *****************************************************************************
     $('#modal_nutriente').autocomplete({
         source: function (request, response) {
+            if (!hasPerm('materia_prima:consultarMP_percentual_nutriente')) {
+                showToast('Sem permissão para consultar matérias primas por nutriente.', 'warning');
+                response([]);
+                return;
+            }
             // Normalizar o termo de busca removendo acentos
             const searchTerm = removeAcento(request.term.toLowerCase());
 
@@ -577,14 +626,18 @@
             let percentual = $('#modal_percentual').val().replace(/[^0-9.]/g, ''); // Permitir números e ponto/virgula
 
             // Consultar as máterias primas que atendem a necessidade. 
+            if (!hasPerm('materia_prima:consultarMP_percentual_nutriente')) {
+                showToast('Sem permissão para consultar matérias primas por nutriente.', 'warning');
+                return;
+            }
             req_GET(opt.urlMateriaPrima + `?nutriente=${id_nutriente}&percentual=${percentual}`).then(result => {
 
                 if (!result.success) {
                     // Tratamento de erro
                     let errorMessage;
                     errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                    // Usa a função showErrorModal para mostrar o erro
-                    showErrorModal(errorMessage);
+                    // Usa a função showToast para mostrar o erro
+                    showToast(errorMessage, 'error');
                     return;
                 }
 
@@ -593,7 +646,7 @@
 
             }).catch(error => {
                 // Tratamento de erro de rede ou erro inesperado
-                showErrorModal(`04 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                showToast(`04 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
             });
         }
     }).autocomplete("widget").css("z-index", "9999");
@@ -638,6 +691,11 @@
     //  Adicionar matéria prima a uma etap.
     $('#addComposicaoProjeto').on('click', '.addMP_Etapa', function () {
 
+        if (!hasPerm('etapa_mp:cadastrar')) {
+            showToast('Sem permissão para adicionar matéria prima.', 'warning');
+            return;
+        }
+
         $("#modal_nutriente").val("")
         $("#modal_percentual").val("")
 
@@ -657,15 +715,15 @@
                 // Tratamento de erro
                 let errorMessage;
                 errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                // Usa a função showErrorModal para mostrar o erro
-                showErrorModal(errorMessage);
+                // Usa a função showToast para mostrar o erro
+                showToast(errorMessage, 'error');
                 return;
             }
             projeto_detalhado();
 
         }).catch(error => {
             // Tratamento de erro de rede ou erro inesperado
-            showErrorModal(`05 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+            showToast(`05 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
         });
 
         setTimeout(() => {
@@ -711,6 +769,9 @@
     //** Função auto-executável para buscar todos os nutrientes cadastrados  ******************************************************  
     let listaDeNutriente;
     (() => {
+        if (!hasPerm('materia_prima:consultarMP_percentual_nutriente')) {
+            return;
+        }
         //Consultar projetos detalhados......
         req_GET(opt.urlNutriente).then(result => {
 
@@ -718,8 +779,8 @@
                 // Tratamento de erro
                 let errorMessage;
                 errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                // Usa a função showErrorModal para mostrar o erro
-                showErrorModal(errorMessage);
+                // Usa a função showToast para mostrar o erro
+                showToast(errorMessage, 'error');
                 return;
             }
 
@@ -727,7 +788,7 @@
 
         }).catch(error => {
             // Tratamento de erro de rede ou erro inesperado
-            showErrorModal(`06 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+            showToast(`06 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
         });
     })();
 
@@ -742,6 +803,10 @@
 
     // salva alteracao na materia prima, percentual, tempo_agitacao, lote adicionada
     $(document).on('focusout', '.percentual, .tempo_agitacao, .lote', function () {
+        if (!hasPerm('etapa_mp:alterar')) {
+            showToast('Sem permissão para alterar matéria prima.', 'warning');
+            return;
+        }
         const input = $(this);
         const idEtapa = $(this).closest('li').data('id');
         const idMp = input.data('id'); // ID associado à linha
@@ -759,13 +824,13 @@
                 // Tratamento de erro
                 let errorMessage;
                 errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                // Usa a função showErrorModal para mostrar o erro
-                showErrorModal(errorMessage);
+                // Usa a função showToast para mostrar o erro
+                showToast(errorMessage, 'error');
                 return;
             }
         }).catch(error => {
             // Tratamento de erro de rede ou erro inesperado
-            showErrorModal(`07 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+            showToast(`07 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
         });
 
         // atualiza dados
@@ -794,6 +859,10 @@
 
     // deleta materia prima adicionada
     function excluiComposicao(idMp, idEtapa) {
+        if (!hasPerm('etapa_mp:deletar')) {
+            showToast('Sem permissão para excluir matéria prima.', 'warning');
+            return;
+        }
         // Exibe uma caixa de confirmação para o usuário
         const confirmar = window.confirm("Tem certeza de que deseja excluir este item?");
 
@@ -813,8 +882,8 @@
                     // Tratamento de erro
                     let errorMessage;
                     errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                    // Usa a função showErrorModal para mostrar o erro
-                    showErrorModal(errorMessage);
+                    // Usa a função showToast para mostrar o erro
+                    showToast(errorMessage, 'error');
                     return;
                 }
 
@@ -822,7 +891,7 @@
 
             }).catch(error => {
                 // Tratamento de erro de rede ou erro inesperado
-                showErrorModal(`08 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                showToast(`08 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
             });
         }
         setTimeout(() => {
@@ -832,10 +901,22 @@
 
     // edita etapa
     function initModalEtapas(id = null) {
+        if (id && !hasPerm('etapa:alterar')) {
+            showToast('Sem permissão para editar etapa.', 'warning');
+            return;
+        }
+        if (!id && !hasPerm('etapa:cadastrar')) {
+            showToast('Sem permissão para cadastrar etapa.', 'warning');
+            return;
+        }
         // Limpa o formulário
         $('#formCadastrarEtapaProjeto').trigger("reset");
 
         if (id) {
+            if (!hasPerm('etapa:consultarPorId')) {
+                showToast('Sem permissão para consultar etapa.', 'warning');
+                return;
+            }
             // Se o ID for fornecido, configura o modal para edição
             $('#modalEtapas .modal-title').text('Editar Etapa');
 
@@ -846,8 +927,8 @@
                     // Tratamento de erro
                     let errorMessage;
                     errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                    // Usa a função showErrorModal para mostrar o erro
-                    showErrorModal(errorMessage);
+                    // Usa a função showToast para mostrar o erro
+                    showToast(errorMessage, 'error');
                     return;
                 }
 
@@ -864,7 +945,7 @@
                 $('#modalEtapas').modal('show');
             }).catch(error => {
                 // Tratamento de erro de rede ou erro inesperado
-                showErrorModal(`09 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                showToast(`09 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
             });
 
         } else {
@@ -882,6 +963,15 @@
 
             const action = $('#etapaCadastrar').data('action');
             const id = $('#etapaCadastrar').data('id');
+
+            if (action === 'editar' && !hasPerm('etapa:alterar')) {
+                showToast('Sem permissão para editar etapa.', 'warning');
+                return;
+            }
+            if (action === 'cadastrar' && !hasPerm('etapa:cadastrar')) {
+                showToast('Sem permissão para cadastrar etapa.', 'warning');
+                return;
+            }
 
             // Serializa os dados do formulário em uma string URL-encoded
             let formData = $(this).serializeArray();
@@ -903,8 +993,8 @@
                         // Tratamento de erro
                         let errorMessage;
                         errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                        // Usa a função showErrorModal para mostrar o erro
-                        showErrorModal(errorMessage);
+                        // Usa a função showToast para mostrar o erro
+                        showToast(errorMessage, 'error');
                         return;
                     }
                     projeto_detalhado()
@@ -912,7 +1002,7 @@
                     $('#modalEtapas').modal('hide');
                 }).catch(error => {
                     // Tratamento de erro de rede ou erro inesperado
-                    showErrorModal(`10 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                    showToast(`10 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
                 });
             } else {
                 // Envia requisição de criação
@@ -923,8 +1013,8 @@
                         // Tratamento de erro
                         let errorMessage;
                         errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                        // Usa a função showErrorModal para mostrar o erro
-                        showErrorModal(errorMessage);
+                        // Usa a função showToast para mostrar o erro
+                        showToast(errorMessage, 'error');
                         return;
                     }
                     projeto_detalhado()
@@ -932,7 +1022,7 @@
                     $('#modalEtapas').modal('hide');
                 }).catch(error => {
                     // Tratamento de erro de rede ou erro inesperado
-                    showErrorModal(`11 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                    showToast(`11 - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
                 });
             }
         });
@@ -946,6 +1036,10 @@
     }
 
     function excluirEtapa(idEt) {
+        if (!hasPerm('etapa:deletar')) {
+            showToast('Sem permissão para excluir etapa.', 'warning');
+            return;
+        }
         // Exibe uma caixa de confirmação para o usuário
         const confirmar = window.confirm("Tem certeza de que deseja excluir esta etapa?");
 
@@ -958,8 +1052,8 @@
                     // Tratamento de erro
                     let errorMessage;
                     errorMessage = `${result.message || 'Erro desconhecido.'}`;
-                    // Usa a função showErrorModal para mostrar o erro
-                    showErrorModal(errorMessage);
+                    // Usa a função showToast para mostrar o erro
+                    showToast(errorMessage, 'error');
                     return;
                 }
 
@@ -968,7 +1062,7 @@
 
             }).catch(error => {
                 // Tratamento de erro de rede ou erro inesperado
-                showErrorModal(`12  - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`);
+                showToast(`12  - Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
             });
         }
     }
@@ -976,5 +1070,13 @@
     // adiciona href no botão imprimir
     id_projeto = parseInt(getAllUrlParams()['id']);
     $(".btn-imprimir").attr('href', `/page/projeto_impressao.html?id=${id_projeto}`)
+
+    if (!hasPerm('etapa:cadastrar')) {
+        $('#cadastraEtapa_').addClass('d-none');
+    }
+
+    if (!hasPerm('projeto:consultarDetalhado')) {
+        $('.btn-imprimir').addClass('d-none');
+    }
 
 </script>
