@@ -11,13 +11,16 @@
         {
             "title": "Nutrientes",
             "dropdown": [
-                {
-                    "title": "Cadastrar",
-                    "url": "/nutrientes/cadastrar"
-                },
+                
                 {
                     "title": "Listar",
-                    "url": "/nutrientes/listar"
+                    "url": "/nutrientes/listar",
+                    "key": "nutriente:consultar"
+                },
+                {
+                    "title": "Cadastrar",
+                    "url": "/nutrientes/cadastrar",
+                    "key":"nutriente:cadastrar"
                 }
             ],
             "icon": "fa-leaf",
@@ -28,13 +31,16 @@
         {
             "title": "Matéria Prima",
             "dropdown": [
-                {
-                    "title": "Cadastrar",
-                    "url": "/materia_prima/cadastrar"
-                },
+                
                 {
                     "title": "Listar",
-                    "url": "/materia_prima/listar"
+                    "url": "/materia_prima/listar",
+                    "key":"materia_prima:consultar"
+                },
+                {
+                    "title": "Cadastrar",
+                    "url": "/materia_prima/cadastrar",
+                    "key": "materia_prima:cadastrar"
                 }
             ],
             "icon": "fa-flask-vial",
@@ -45,13 +51,16 @@
         {
             "title": "Projetos",
             "dropdown": [
-                {
-                    "title": "Cadastrar",
-                    "url": "/projeto/cadastrar"
-                },
+                
                 {
                     "title": "Listar",
-                    "url": "/projetos/listar"
+                    "url": "/projetos/listar",
+                    "key": "projeto:consultar"
+                },
+                {
+                    "title": "Cadastrar",
+                    "url": "/projeto/cadastrar",
+                    "key": "projeto:cadastrar"
                 }
             ],
             "icon": "fa-gear",
@@ -65,17 +74,17 @@
                 {
                     "title": "Usuário Perfis",
                     "url": "/usuario/perfis",
-                    "key":"perfis:listar"
+                    "key": "perfis:listar"
                 },
                 {
                     "title": "Usuário Cadastrar",
                     "url": "/usuario/cadastrar",
-                    "key":"usuario:cadastrar"
+                    "key": "usuario:cadastrar"
                 },
                 {
                     "title": "Usuário Listar",
                     "url": "/usuario/listar",
-                    "key":"usuario:consultar"
+                    "key": "usuario:consultar"
                 },
                 {
                     "title": "Configurações Página de Impressão",
@@ -85,7 +94,7 @@
             ],
             "icon": "fa-cogs",
             "text": "Configurações gerais do Sistema.",
-            "buttonText": "Configurar"            
+            "buttonText": "Configurar"
         }
     ]
 }

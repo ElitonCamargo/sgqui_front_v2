@@ -651,9 +651,11 @@ async function carregaCardsHome() {
         const menuFiltrado = data.menu.map(item => {
             if (item.dropdown) {
                 const dropdownFiltrado = item.dropdown.filter(subItem => {
+                    // Se tem key, deve ter permissão true para aparecer
                     if (subItem.key) {
                         return permissoes[subItem.key] === true;
                     }
+                    // Se não tem key, permite aparecer
                     return true;
                 });
 
@@ -662,13 +664,16 @@ async function carregaCardsHome() {
                     return dropdownFiltrado.length > 0 ? { ...item, dropdown: dropdownFiltrado } : null;
                 }
 
+                // Verifica permissão do item pai do dropdown
                 if (item.key && permissoes[item.key] !== true) {
                     return null;
                 }
 
+                // Só retorna o dropdown se houver itens filtrados
                 return dropdownFiltrado.length > 0 ? { ...item, dropdown: dropdownFiltrado } : null;
             }
 
+            // Para itens sem dropdown, verifica se tem permissão
             if (item.key && permissoes[item.key] !== true) {
                 return null;
             }
