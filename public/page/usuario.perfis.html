@@ -121,6 +121,30 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
         width: 1rem;
         height: 1rem;
     }
+
+    .recurso-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+    }
+
+    .marcar-todos-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        font-size: 0.85rem;
+        color: #0d6efd;
+        user-select: none;
+        cursor: pointer;
+    }
+
+    .marcar-todos-label .form-check-input {
+        margin: 0;
+    }
 </style>
 
 <div class="row mb-3">
@@ -577,6 +601,43 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                 return [];
             }
 
+            function criarCabecalhoRecurso(recurso, classePermissao, readonly = false) {
+                const header = $('<div>').addClass('recurso-header');
+                const titulo = $('<h6>').addClass('fw-bold text-primary mb-0');
+                const icon = $('<i>').addClass('fa-solid fa-folder me-1');
+                titulo.append(icon).append(' ' + recurso);
+
+                const labelMarcarTodos = $('<label>').addClass('marcar-todos-label');
+                const checkboxMarcarTodos = $('<input>')
+                    .addClass('form-check-input marcar-todos-recurso')
+                    .attr('type', 'checkbox')
+                    .attr('data-permissao-class', classePermissao)
+                    .prop('disabled', readonly);
+
+                labelMarcarTodos.append(checkboxMarcarTodos).append('Marcar todos');
+                header.append(titulo).append(labelMarcarTodos);
+                return header;
+            }
+
+            function atualizarEstadoMarcarTodos(container, classePermissao) {
+                container.find('.recurso-bloco').each(function () {
+                    const bloco = $(this);
+                    const checkboxes = bloco.find('.' + classePermissao);
+                    const checkboxesAtivos = checkboxes.filter(':enabled');
+                    const checkboxMarcarTodos = bloco.find('.marcar-todos-recurso').first();
+
+                    if (!checkboxMarcarTodos.length) return;
+
+                    if (checkboxesAtivos.length === 0) {
+                        checkboxMarcarTodos.prop('checked', false);
+                        return;
+                    }
+
+                    const todosMarcados = checkboxesAtivos.length > 0 && checkboxesAtivos.toArray().every(el => el.checked === true);
+                    checkboxMarcarTodos.prop('checked', todosMarcados);
+                });
+            }
+
             function renderizarPermissoes(perfilId = null, readonly = true) {
                 const container = $('#permissoesContainer');
                 const listaBase = permissoesPerfilAtual.length > 0 ? permissoesPerfilAtual : todasPermissoes;
@@ -647,13 +708,10 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                     // console.log("recurso", recurso)
 
                     // Container do recurso
-                    const recursoDiv = $('<div>').addClass('mb-3');
+                    const recursoDiv = $('<div>').addClass('mb-3 recurso-bloco');
 
                     // Título do recurso
-                    const titulo = $('<h6>').addClass('fw-bold text-primary border-bottom pb-2');
-                    const icon = $('<i>').addClass('fa-solid fa-folder');
-                    titulo.append(icon).append(' ' + recurso);
-                    recursoDiv.append(titulo);
+                    recursoDiv.append(criarCabecalhoRecurso(recurso, 'permissao-checkbox', readonly));
 
                     const codigoEtapa = (p) => {
                         const codigo = String(p.codigo || '').toLowerCase();
@@ -793,11 +851,8 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                     container.append(recursoDiv);
                 });
                 if (temSistema) {
-                    const sistemaDiv = $('<div>').addClass('mb-3');
-                    const tituloSistema = $('<h6>').addClass('fw-bold text-primary border-bottom pb-2');
-                    const iconSistema = $('<i>').addClass('fa-solid fa-folder');
-                    tituloSistema.append(iconSistema).append(' Configurações de Sistema');
-                    sistemaDiv.append(tituloSistema);
+                    const sistemaDiv = $('<div>').addClass('mb-3 recurso-bloco');
+                    sistemaDiv.append(criarCabecalhoRecurso('Configurações de Sistema', 'permissao-checkbox', readonly));
 
                     ['usuarios', 'controleacesso', 'configuracoesimpressao'].forEach(grupo => {
                         if (!gruposSistema[grupo] || gruposSistema[grupo].length === 0) return;
@@ -849,6 +904,8 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
 
                     container.append(sistemaDiv);
                 }
+
+                atualizarEstadoMarcarTodos(container, 'permissao-checkbox');
 
             }
 
@@ -919,11 +976,8 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
 
                 recursosGerais.forEach(recurso => {
                     
-                    const recursoDiv = $('<div>').addClass('mb-3');
-                    const titulo = $('<h6>').addClass('fw-bold text-primary border-bottom pb-2');
-                    const icon = $('<i>').addClass('fa-solid fa-folder');
-                    titulo.append(icon).append(' ' + recurso);
-                    recursoDiv.append(titulo);
+                    const recursoDiv = $('<div>').addClass('mb-3 recurso-bloco');
+                    recursoDiv.append(criarCabecalhoRecurso(recurso, 'permissao-cadastro', false));
 
                     const codigoEtapa = (p) => {
                         const codigo = String(p.codigo || '').toLowerCase();
@@ -1042,11 +1096,8 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                     container.append(recursoDiv);
                 });
                 if (temSistema) {
-                    const sistemaDiv = $('<div>').addClass('mb-3');
-                    const tituloSistema = $('<h6>').addClass('fw-bold text-primary border-bottom pb-2');
-                    const iconSistema = $('<i>').addClass('fa-solid fa-folder');
-                    tituloSistema.append(iconSistema).append(' Configurações de Sistema');
-                    sistemaDiv.append(tituloSistema);
+                    const sistemaDiv = $('<div>').addClass('mb-3 recurso-bloco');
+                    sistemaDiv.append(criarCabecalhoRecurso('Configurações de Sistema', 'permissao-cadastro', false));
 
                     ['usuarios', 'controleacesso', 'configuracoesimpressao'].forEach(grupo => {
                         if (!gruposSistema[grupo] || gruposSistema[grupo].length === 0) return;
@@ -1092,6 +1143,8 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
 
                     container.append(sistemaDiv);
                 }
+
+                atualizarEstadoMarcarTodos(container, 'permissao-cadastro');
             }
 
             function getPermissoesSelecionadasCadastro() {
@@ -1130,7 +1183,32 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
             });
 
             $('#permissoesContainer, #permissoesCadastroContainer').on('change', '.form-check-input', function () {
+                if ($(this).hasClass('marcar-todos-recurso')) return;
                 $(this).closest('.form-check').toggleClass('perm-selecionada', this.checked);
+
+                const bloco = $(this).closest('.recurso-bloco');
+                const classePermissao = $(this).hasClass('permissao-cadastro') ? 'permissao-cadastro' : 'permissao-checkbox';
+                atualizarEstadoMarcarTodos(bloco, classePermissao);
+            });
+
+            $('#permissoesContainer').on('change', '.marcar-todos-recurso', function () {
+                const bloco = $(this).closest('.recurso-bloco');
+                const checked = this.checked;
+
+                bloco.find('.permissao-checkbox:enabled').each(function () {
+                    $(this).prop('checked', checked);
+                    $(this).closest('.form-check').toggleClass('perm-selecionada', checked);
+                });
+            });
+
+            $('#permissoesCadastroContainer').on('change', '.marcar-todos-recurso', function () {
+                const bloco = $(this).closest('.recurso-bloco');
+                const checked = this.checked;
+
+                bloco.find('.permissao-cadastro:enabled').each(function () {
+                    $(this).prop('checked', checked);
+                    $(this).closest('.form-check').toggleClass('perm-selecionada', checked);
+                });
             });
 
             // CARREGA DADOS DOS PERFIS
