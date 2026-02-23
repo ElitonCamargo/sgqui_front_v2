@@ -391,24 +391,6 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
         });
     }
 
-    function filtrarPermissoesConfig(permissoes) {
-        // Para configurações de impressão: apenas GET (consultar) e PUT (alterar)
-        // Remove POST (cadastrar), DELETE (deletar) e GET com "PorId" (consultarPorId)
-        return permissoes.filter(p => {
-            const metodo = String(p.metodo || '').toUpperCase();
-            const codigo = String(p.codigo || '').toLowerCase();
-            
-            // Remove POST e DELETE
-            if (metodo === 'POST' || metodo === 'DELETE') return false;
-            
-            // Remove GET com "porid" (consultarPorId)
-            if (metodo === 'GET' && codigo.includes('porid')) return false;
-            
-            // Mantém GET (consultar) e PUT (alterar)
-            return metodo === 'GET' || metodo === 'PUT';
-        });
-    }
-
     $(function () {
         try {
 
@@ -423,7 +405,8 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
             let todasPermissoes = []; // Cache de todas as permissões
             let permissoesPerfilAtual = []; // Permissões do perfil atual
             let carregandoPermissoesPromise = null;
-            let ordemRecursosMenu = [];
+            let ordemChavesMenu = [];
+            let ordemAcoesPorPrefixo = {};
 
             function garantirTodasPermissoesCarregadas() {
                 if (todasPermissoes.length > 0) return Promise.resolve(todasPermissoes);
@@ -436,8 +419,6 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
 
             function carregarTodasPermissoes() {
                 return req_GET(opt.urlPermissoes).then((result) => {
-
-                    console.log('RESULT carregarTodasPermissoes:', result);
 
                     if (result.success && Array.isArray(result.data)) {
 
@@ -491,52 +472,147 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                 });
             }
 
+            function extrairPrefixoCodigo(codigo) {
+                const c = String(codigo || '').trim().toLowerCase();
+                if (!c) return '';
+                return c.split(':')[0] || c;
+            }
+
+            function extrairAcaoCodigo(codigo) {
+                const c = String(codigo || '').trim().toLowerCase();
+                if (!c || !c.includes(':')) return '';
+                return c.split(':')[1] || '';
+            }
+
             function carregarOrdemRecursosMenu() {
                 return fetch('/page/nav.json')
                     .then(res => res.json())
                     .then(data => {
                         const menu = (data && Array.isArray(data.menu)) ? data.menu : [];
-                        ordemRecursosMenu = menu
-                            .map(item => normalizarRecurso(item.title))
-                            .filter(Boolean);
-                        return ordemRecursosMenu;
+
+                        const chaves = [];
+                        const mapaAcoes = {};
+
+                        const addKey = (key) => {
+                            if (!key) return;
+                            const prefixo = extrairPrefixoCodigo(key);
+                            const acao = extrairAcaoCodigo(key);
+
+                            if (prefixo) {
+                                chaves.push(prefixo);
+                            }
+
+                            if (!prefixo || !acao) return;
+
+                            if (!mapaAcoes[prefixo]) {
+                                mapaAcoes[prefixo] = [];
+                            }
+
+                            if (!mapaAcoes[prefixo].includes(acao)) {
+                                mapaAcoes[prefixo].push(acao);
+                            }
+                        };
+
+                        menu.forEach(item => {
+                            if (item?.key) {
+                                addKey(item.key);
+                            }
+                            if (Array.isArray(item?.dropdown)) {
+                                item.dropdown.forEach(subItem => {
+                                    if (subItem?.key) {
+                                        addKey(subItem.key);
+                                    }
+                                });
+                            }
+                        });
+
+                        ordemChavesMenu = Array.from(new Set(chaves.filter(Boolean)));
+                        ordemAcoesPorPrefixo = mapaAcoes;
+                        return ordemChavesMenu;
                     })
                     .catch(() => {
-                        ordemRecursosMenu = [];
+                        ordemChavesMenu = [];
+                        ordemAcoesPorPrefixo = {};
                         return [];
                     });
             }
 
-            function ordenarRecursos(recursos) {
-                const indiceMenuRecurso = (recursoNorm) => {
-                    for (let i = 0; i < ordemRecursosMenu.length; i++) {
-                        const menuNorm = ordemRecursosMenu[i];
-                        if (!menuNorm) continue;
-                        if (recursoNorm.includes(menuNorm) || menuNorm.includes(recursoNorm)) {
-                            return i;
-                        }
-                    }
-                    return -1;
+            function compararPermissoesPorNavEMetodo(a, b) {
+                const aPrefixo = extrairPrefixoCodigo(a?.codigo);
+                const bPrefixo = extrairPrefixoCodigo(b?.codigo);
+
+                const idxPrefixoA = ordemChavesMenu.indexOf(aPrefixo);
+                const idxPrefixoB = ordemChavesMenu.indexOf(bPrefixo);
+
+                const rankPrefixoA = idxPrefixoA === -1 ? Number.MAX_SAFE_INTEGER : idxPrefixoA;
+                const rankPrefixoB = idxPrefixoB === -1 ? Number.MAX_SAFE_INTEGER : idxPrefixoB;
+
+                if (rankPrefixoA !== rankPrefixoB) {
+                    return rankPrefixoA - rankPrefixoB;
+                }
+
+                const aAcao = extrairAcaoCodigo(a?.codigo);
+                const bAcao = extrairAcaoCodigo(b?.codigo);
+                const ordemAcoes = ordemAcoesPorPrefixo[aPrefixo] || [];
+
+                const idxAcaoA = ordemAcoes.indexOf(aAcao);
+                const idxAcaoB = ordemAcoes.indexOf(bAcao);
+                const rankAcaoA = idxAcaoA === -1 ? Number.MAX_SAFE_INTEGER : idxAcaoA;
+                const rankAcaoB = idxAcaoB === -1 ? Number.MAX_SAFE_INTEGER : idxAcaoB;
+
+                if (rankAcaoA !== rankAcaoB) {
+                    return rankAcaoA - rankAcaoB;
+                }
+
+                const rankMetodoA = ordemMetodo(a?.metodo);
+                const rankMetodoB = ordemMetodo(b?.metodo);
+                if (rankMetodoA !== rankMetodoB) {
+                    return rankMetodoA - rankMetodoB;
+                }
+
+                return String(a?.descricao || '').localeCompare(String(b?.descricao || ''));
+            }
+
+            function ordenarRecursos(recursos, permissoesPorRecurso) {
+                const indiceChaveMenu = (prefixo) => {
+                    if (!prefixo) return -1;
+                    return ordemChavesMenu.indexOf(prefixo);
                 };
 
-                const isNutriente = (norm) => norm.includes('nutrient');
-                const isMateriaPrima = (norm) => norm.includes('materia') && norm.includes('prima');
-                const isProjeto = (norm) => norm.includes('projet');
+                const rankRecurso = (recurso) => {
+                    const permissoesDoRecurso = Array.isArray(permissoesPorRecurso?.[recurso])
+                        ? permissoesPorRecurso[recurso]
+                        : [];
 
-                const rankRecurso = (norm) => {
-                    if (isNutriente(norm)) return 10;
-                    if (isMateriaPrima(norm)) return 20;
-                    if (isProjeto(norm)) return 30;
-                    const idx = indiceMenuRecurso(norm);
-                    if (idx !== -1) return 100 + idx;
-                    return 1000;
+                    let melhorIndice = Number.MAX_SAFE_INTEGER;
+                    permissoesDoRecurso.forEach(permissao => {
+                        const prefixo = extrairPrefixoCodigo(permissao?.codigo);
+                        const idx = indiceChaveMenu(prefixo);
+                        if (idx !== -1 && idx < melhorIndice) {
+                            melhorIndice = idx;
+                        }
+                    });
+
+                    if (melhorIndice !== Number.MAX_SAFE_INTEGER) {
+                        return melhorIndice;
+                    }
+
+                    const recursoNorm = normalizarRecurso(recurso);
+                    const idxPorNome = ordemChavesMenu.findIndex(chave => {
+                        const chaveNorm = normalizarRecurso(chave);
+                        return recursoNorm.includes(chaveNorm) || chaveNorm.includes(recursoNorm);
+                    });
+
+                    if (idxPorNome !== -1) {
+                        return idxPorNome;
+                    }
+
+                    return 9999;
                 };
 
                 return (recursos || []).sort((a, b) => {
-                    const aNorm = normalizarRecurso(a);
-                    const bNorm = normalizarRecurso(b);
-                    const rankA = rankRecurso(aNorm);
-                    const rankB = rankRecurso(bNorm);
+                    const rankA = rankRecurso(a);
+                    const rankB = rankRecurso(b);
                     if (rankA !== rankB) return rankA - rankB;
                     return a.localeCompare(b);
                 });
@@ -649,7 +725,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                 }
 
                 const permissoesPorRecurso = montarPermissoesPorRecurso(listaBase);
-                const recursos = ordenarRecursos(Object.keys(permissoesPorRecurso));
+                const recursos = ordenarRecursos(Object.keys(permissoesPorRecurso), permissoesPorRecurso);
                 const chaveGarantia = recursos.find(r => normalizarRecurso(r).includes('garantia'));
                 const chaveMateriaPrima = recursos.find(r => {
                     const norm = normalizarRecurso(r);
@@ -727,7 +803,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
 
                     // Criar checkbox para cada permissão
                     permissoesDoRecurso
-                        .sort((a, b) => ordemMetodo(a.metodo) - ordemMetodo(b.metodo))
+                        .sort(compararPermissoesPorNavEMetodo)
                         .forEach(permissao => {
                             const isChecked = permissao.vinculada === true;
 
@@ -770,7 +846,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                         const subRow = $('<div>').addClass('row permissao-subtree');
 
                         permissoesPorRecurso[chaveGarantia]
-                            .sort((a, b) => ordemMetodo(a.metodo) - ordemMetodo(b.metodo))
+                            .sort(compararPermissoesPorNavEMetodo)
                             .forEach(permissao => {
                                 const isChecked = permissao.vinculada === true;
 
@@ -813,7 +889,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                         const subRow = $('<div>').addClass('row permissao-subtree');
 
                         permissoesEtapa
-                            .sort((a, b) => ordemMetodo(a.metodo) - ordemMetodo(b.metodo))
+                            .sort(compararPermissoesPorNavEMetodo)
                             .forEach(permissao => {
                                 const isChecked = permissao.vinculada === true;
 
@@ -866,7 +942,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                             ? filtrarPermissoesConfig(gruposSistema[grupo])
                             : gruposSistema[grupo];
                         permissoesGrupo
-                            .sort((a, b) => ordemMetodo(a.metodo) - ordemMetodo(b.metodo))
+                            .sort(compararPermissoesPorNavEMetodo)
                             .forEach(permissao => {
                                 const isChecked = permissao.vinculada === true;
 
@@ -920,7 +996,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                 }
 
                 const permissoesPorRecurso = montarPermissoesPorRecurso(listaBase);
-                const recursos = ordenarRecursos(Object.keys(permissoesPorRecurso));
+                const recursos = ordenarRecursos(Object.keys(permissoesPorRecurso), permissoesPorRecurso);
                 const chaveGarantia = recursos.find(r => normalizarRecurso(r).includes('garantia'));
                 const chaveMateriaPrima = recursos.find(r => {
                     const norm = normalizarRecurso(r);
@@ -991,7 +1067,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                     const row = $('<div>').addClass('row');
 
                     permissoesDoRecurso
-                        .sort((a, b) => ordemMetodo(a.metodo) - ordemMetodo(b.metodo))
+                        .sort(compararPermissoesPorNavEMetodo)
                         .forEach(permissao => {
                             const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
                             const formCheck = $('<div>').addClass('form-check');
@@ -1027,7 +1103,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                         const subRow = $('<div>').addClass('row permissao-subtree');
 
                         permissoesPorRecurso[chaveGarantia]
-                            .sort((a, b) => ordemMetodo(a.metodo) - ordemMetodo(b.metodo))
+                            .sort(compararPermissoesPorNavEMetodo)
                             .forEach(permissao => {
                                 const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
                                 const formCheck = $('<div>').addClass('form-check');
@@ -1064,7 +1140,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                         const subRow = $('<div>').addClass('row permissao-subtree');
 
                         permissoesEtapa
-                            .sort((a, b) => ordemMetodo(a.metodo) - ordemMetodo(b.metodo))
+                            .sort(compararPermissoesPorNavEMetodo)
                             .forEach(permissao => {
                                 const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
                                 const formCheck = $('<div>').addClass('form-check');
@@ -1111,7 +1187,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                             ? filtrarPermissoesConfig(gruposSistema[grupo])
                             : gruposSistema[grupo];
                         permissoesGrupo
-                            .sort((a, b) => ordemMetodo(a.metodo) - ordemMetodo(b.metodo))
+                            .sort(compararPermissoesPorNavEMetodo)
                             .forEach(permissao => {
                                 const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
                                 const formCheck = $('<div>').addClass('form-check');
