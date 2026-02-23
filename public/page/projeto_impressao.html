@@ -280,7 +280,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="2" contenteditable="true">
+                        <td colspan="2" contenteditable="true" id="print-observacao">
                         </td>
 
                     </tr>
@@ -307,40 +307,300 @@
     <!-- Script para preencher os dados dinamicamente -->
     <script>
 
-        // alimenta os dados do form
-        (async () => {
-            const procedimento = await getConfig('print-procedimento');
-            const produzidoPor = await getConfig('print-produzido-por');
-            const resultadoFinal = await getConfig('print-resultado-final');
-            const responsavelArea = await getConfig('print-responsavel-area');
-            const anexo = await getConfig('print-anexo');
+        let param = getAllUrlParams();
+        let bloqueiaAutoSave = false;
+        let ultimoPayloadSalvo = null;
+        let estadoConfigInicial = null;
+        const endpointResultado = `${opt.urlProjeto}/${param.id}/resultado`;
+        const endpointProjeto = `${opt.urlProjeto}/${param.id}`;
 
+        const temConteudo = (valor) => {
+            if (valor === null || valor === undefined) {
+                return false;
+            }
 
+            if (typeof valor === 'string') {
+                return valor.trim() !== '';
+            }
 
+            return true;
+        };
 
-            $("#print-procedimento").html(procedimento.value);
-            $("#print-produzido-por").html(produzidoPor.value);
-            $("#print-resultado-final").html(resultadoFinal.value);
-            $("#print-responsavel-area").html(responsavelArea.value);
-            $("#print-anexo").html(anexo.value);
+        const getResultadoPayload = (projetoData) => {
+            if (!projetoData) {
+                return null;
+            }
 
+            let payload = projetoData.resultado;
 
-            //alimenta o select de analises
-            const analises = await getConfig('print-analises');
-            const analises_array = analises.value.split(',').map(item => item.trim());
+            if (!payload && projetoData.data) {
+                payload = projetoData.data.resultado;
+            }
 
-            // Itera sobre o array e adiciona cada item como uma option no select
-            $.each(analises_array, (k, v) => {
-                $('#analisesSelect').append($('<option>', {
-                    value: v, // Define o valor da option
-                    text: v   // Define o texto da option
-                }));
+            if (!payload && Array.isArray(projetoData.data) && projetoData.data.length > 0) {
+                payload = projetoData.data[0]?.resultado;
+            }
+
+            if (!payload) {
+                return null;
+            }
+
+            if (typeof payload === 'string') {
+                try {
+                    payload = JSON.parse(payload);
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            return (payload && typeof payload === 'object') ? payload : null;
+        };
+
+        const collectAnalisesTabela = () => {
+            const linhas = [];
+
+            $('#tabelaAnalises tr').each(function (index) {
+                if (index === 0) {
+                    return;
+                }
+
+                const celulas = $(this).find('td');
+
+                if (celulas.length < 3) {
+                    return;
+                }
+
+                linhas.push({
+                    analise: $(celulas[0]).text().trim(),
+                    especificacao: $(celulas[1]).html(),
+                    resultado: $(celulas[2]).html()
+                });
             });
 
+            return linhas;
+        };
+
+        const buildResultadoPayload = () => {
+            const procedimento = $('#print-procedimento').html() || '';
+            const produzidoPor = $('#print-produzido-por').html() || '';
+            const resultadoFinal = $('#print-resultado-final').html() || '';
+            const responsavelArea = $('#print-responsavel-area').html() || '';
+            const anexo = $('#print-anexo').html() || '';
+            const observacao = ($('#print-observacao').html() || '');
+            const quantidadeVendida = ($('#quantidadeVendida').text() || '').trim();
+
+            return {
+                procedimento: temConteudo(procedimento) ? procedimento : (estadoConfigInicial?.procedimento || ''),
+                produzidoPor: temConteudo(produzidoPor) ? produzidoPor : (estadoConfigInicial?.produzidoPor || ''),
+                resultadoFinal: temConteudo(resultadoFinal) ? resultadoFinal : (estadoConfigInicial?.resultadoFinal || ''),
+                responsavelArea: temConteudo(responsavelArea) ? responsavelArea : (estadoConfigInicial?.responsavelArea || ''),
+                anexo: temConteudo(anexo) ? anexo : (estadoConfigInicial?.anexo || ''),
+                quantidadeVendida: temConteudo(quantidadeVendida) ? quantidadeVendida : '1',
+                observacao: observacao,
+                hm: $('#hm').is(':checked'),
+                nr: $('#nr').is(':checked'),
+                analises: collectAnalisesTabela()
+            };
+        };
+
+        const renderAnalisesTabela = (analises = []) => {
+            const tabela = document.getElementById('tabelaAnalises');
+
+            while (tabela.rows.length > 1) {
+                tabela.deleteRow(1);
+            }
+
+            analises.forEach(item => {
+                const novaLinha = tabela.insertRow();
+
+                const celulaAnalise = novaLinha.insertCell(0);
+                celulaAnalise.textContent = item.analise || '';
+
+                const celulaEspecificacao = novaLinha.insertCell(1);
+                celulaEspecificacao.setAttribute('contenteditable', 'true');
+                celulaEspecificacao.innerHTML = item.especificacao || '';
+
+                const celulaResultado = novaLinha.insertCell(2);
+                celulaResultado.setAttribute('contenteditable', 'true');
+                celulaResultado.innerHTML = item.resultado || '';
+            });
+        };
+
+        const applyResultadoPayload = (payload = {}) => {
+            if (!payload || typeof payload !== 'object') {
+                return;
+            }
+
+            bloqueiaAutoSave = true;
+
+            if (temConteudo(payload.procedimento)) {
+                $('#print-procedimento').html(payload.procedimento);
+            }
+            if (temConteudo(payload.produzidoPor)) {
+                $('#print-produzido-por').html(payload.produzidoPor);
+            }
+            if (temConteudo(payload.resultadoFinal)) {
+                $('#print-resultado-final').html(payload.resultadoFinal);
+            }
+            if (temConteudo(payload.responsavelArea)) {
+                $('#print-responsavel-area').html(payload.responsavelArea);
+            }
+            if (temConteudo(payload.anexo)) {
+                $('#print-anexo').html(payload.anexo);
+            }
+            if (payload.observacao !== undefined && payload.observacao !== null) {
+                $('#print-observacao').html(payload.observacao);
+            }
+
+            if (temConteudo(payload.quantidadeVendida)) {
+                $('#quantidadeVendida').text(payload.quantidadeVendida);
+            }
+
+            if (payload.hm !== undefined) {
+                $('#hm').prop('checked', !!payload.hm);
+            }
+
+            if (payload.nr !== undefined) {
+                $('#nr').prop('checked', !!payload.nr);
+            }
+
+            if (Array.isArray(payload.analises)) {
+                renderAnalisesTabela(payload.analises);
+            }
+
+            bloqueiaAutoSave = false;
+            ultimoPayloadSalvo = JSON.stringify(buildResultadoPayload());
+        };
+
+        const salvarResultadoProjeto = async () => {
+            if (bloqueiaAutoSave) {
+                return;
+            }
+
+            const payload = buildResultadoPayload();
+            const payloadString = JSON.stringify(payload);
+
+            if (payloadString === ultimoPayloadSalvo) {
+                return;
+            }
+
+            let response = await req_PUT(endpointResultado, payload);
+
+            if (!response?.success) {
+                response = await req_POST(endpointResultado, payload);
+            }
+
+            if (!response?.success) {
+                response = await req_PUT(endpointResultado, { resultado: payload });
+            }
+
+            if (!response?.success) {
+                response = await req_POST(endpointResultado, { resultado: payload });
+            }
+
+            if (response?.success) {
+                ultimoPayloadSalvo = payloadString;
+                return;
+            }
+
+            showToast('Não foi possível salvar o resultado da impressão.', 'warning');
+        };
+
+        const bindAutoSave = () => {
+            const seletor = '#print-procedimento, #print-produzido-por, #print-resultado-final, #print-responsavel-area, #print-anexo, #print-observacao, #quantidadeVendida';
+            $(document).on('focusout', seletor, salvarResultadoProjeto);
+            $(document).on('focusout', '#tabelaAnalises td[contenteditable="true"]', salvarResultadoProjeto);
+            $('#hm, #nr').on('change', salvarResultadoProjeto);
+        };
+
+        const carregarConfigImpressao = async () => {
+            const listaConfig = await getConfig();
+
+            const getConfigValue = (chave) => {
+                if (!Array.isArray(listaConfig)) {
+                    return '';
+                }
+
+                const item = listaConfig.find(cfg => cfg?.key === chave);
+                return item?.value || '';
+            };
+
+            const procedimento = getConfigValue('print-procedimento');
+            const produzidoPor = getConfigValue('print-produzido-por');
+            const resultadoFinal = getConfigValue('print-resultado-final');
+            const responsavelArea = getConfigValue('print-responsavel-area');
+            const anexo = getConfigValue('print-anexo');
+
+            $('#print-procedimento').html(procedimento);
+            $('#print-produzido-por').html(produzidoPor);
+            $('#print-resultado-final').html(resultadoFinal);
+            $('#print-responsavel-area').html(responsavelArea);
+            $('#print-anexo').html(anexo);
+
+            estadoConfigInicial = {
+                procedimento: procedimento,
+                produzidoPor: produzidoPor,
+                resultadoFinal: resultadoFinal,
+                responsavelArea: responsavelArea,
+                anexo: anexo
+            };
+
+            let analisesArray = [];
+            const valorAnalises = getConfigValue('print-analises');
+
+            if (Array.isArray(valorAnalises)) {
+                analisesArray = valorAnalises;
+            } else if (typeof valorAnalises === 'string' && valorAnalises.trim() !== '') {
+                const texto = valorAnalises.trim();
+
+                if (texto.startsWith('[')) {
+                    try {
+                        const parsed = JSON.parse(texto);
+                        if (Array.isArray(parsed)) {
+                            analisesArray = parsed;
+                        }
+                    } catch (error) {
+                        analisesArray = texto.split(/[;,\n]/);
+                    }
+                } else {
+                    analisesArray = texto.split(/[;,\n]/);
+                }
+            }
+
+            analisesArray = analisesArray
+                .map(item => String(item).trim())
+                .filter(Boolean);
+
+            const select = $('#analisesSelect');
+            select.find('option:not(:first)').remove();
+
+            $.each(analisesArray, (k, v) => {
+                select.append($('<option>', {
+                    value: v,
+                    text: v
+                }));
+            });
+        };
+
+        const carregarResultadoProjeto = async () => {
+            const result = await req_GET(endpointProjeto);
+
+            if (!result?.success) {
+                return;
+            }
+
+            const payload = getResultadoPayload(result);
+
+            if (payload) {
+                applyResultadoPayload(payload);
+            }
+        };
+
+        (async () => {
+            await carregarConfigImpressao();
+            await carregarResultadoProjeto();
+            bindAutoSave();
         })();
-
-
-        let param = getAllUrlParams()
 
         req_GET(opt.urlProjeto + `/detalhado/${param.id}`).then((result) => {
 
@@ -485,13 +745,15 @@
             celulaResultado.textContent = 'Resultado';
             // Reseta o select após adicionar
             select.value = '';
+            salvarResultadoProjeto();
         });
 
         const quantidadeVendida = document.getElementById('quantidadeVendida');
 
         quantidadeVendida.addEventListener('input', function () {
-            // Armazena a posição do cursor
-            const cursorPos = window.getSelection().getRangeAt(0).startOffset;
+            const selecao = window.getSelection();
+            const temRange = selecao && selecao.rangeCount > 0;
+            const cursorPos = temRange ? selecao.getRangeAt(0).startOffset : 0;
 
             // Substitui vírgula por ponto no texto atual
             let valor = this.textContent.replace(',', '.');
@@ -500,12 +762,15 @@
             this.textContent = valor;
 
             // Restaura a posição do cursor
-            const range = document.createRange();
-            const sel = window.getSelection();
-            range.setStart(this.firstChild, cursorPos);
-            range.collapse(true);
-            sel.removeAllRanges();
-            sel.addRange(range);
+            if (this.firstChild) {
+                const range = document.createRange();
+                const sel = window.getSelection();
+                const limite = Math.min(cursorPos, this.firstChild.length || 0);
+                range.setStart(this.firstChild, limite);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
         });
 
         quantidadeVendida.addEventListener('keydown', function (e) {

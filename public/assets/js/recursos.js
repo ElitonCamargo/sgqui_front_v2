@@ -906,12 +906,23 @@ function showToast(message, type = 'info') {
     `);
 
     $('body').append(toast);
-    const bsToast = new bootstrap.Toast(toast[0], { autohide: true, delay: 3000 });
-    bsToast.show();
 
-    toast.on('hidden.bs.toast', function () {
-        $(this).remove();
-    });
+    if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+        const bsToast = new bootstrap.Toast(toast[0], { autohide: true, delay: 3000 });
+        bsToast.show();
+
+        toast.on('hidden.bs.toast', function () {
+            $(this).remove();
+        });
+        return;
+    }
+
+    toast.addClass('show');
+    setTimeout(() => {
+        toast.fadeOut(200, function () {
+            $(this).remove();
+        });
+    }, 3000);
 }
 
 function getPerfilAtivo() {
