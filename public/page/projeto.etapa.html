@@ -362,13 +362,13 @@
     //**  buscar os detalhes do projeto *********************************************************    
     const projeto_detalhado = (id_projeto = parseInt(getAllUrlParams()['id'])) => {
 
-        if (!hasPerm('projeto:consultarDetalhado')) {
+        if (!hasPerm('projeto:consultarPorCodigo')) {
             showToast('Sem permissão para consultar detalhes do projeto.', 'warning');
             return;
         }
 
         //Consultar projetos detalhados......
-        req_GET(opt.urlProjeto + `/detalhado/${id_projeto}`).then(result => {
+        req_GET(opt.urlProjeto + `/${id_projeto}`).then(result => {
 
             if (!result.success) {
                 // Tratamento de erro
@@ -1075,7 +1075,7 @@
         $('#cadastraEtapa_').addClass('d-none');
     }
 
-    if (!hasPerm('projeto:consultarDetalhado')) {
+    if (!hasPerm('projeto:consultarPorCodigo')) {
         $('.btn-imprimir').addClass('d-none');
     }
 
