@@ -122,14 +122,15 @@
 
     async function loadImage() {
 
-        $('#preview').attr('src', " ").hide();
+        $('#preview').attr('src', '').hide();
 
         try {
             // Supondo que getConfig seja uma função assíncrona que retorna uma Promise
             const base64Image = await getConfig('print-logo');  // Espera o valor resolvido da Promise
+            const previewSrc = lerValorConfig(base64Image);
 
-            if (base64Image) {
-                $('#preview').attr('src', base64Image.value).show();  // Atribui o valor correto ao src
+            if (previewSrc) {
+                $('#preview').attr('src', previewSrc).show();  // Atribui o valor correto ao src
             } else {
                 showToast('Imagem não encontrada no banco.', 'error');
             }
@@ -143,7 +144,7 @@
     async function processImage() {
         let file = $('#print-logo')[0].files[0];
         const base64ImageBd = await getConfig('print-logo');
-        let id = base64ImageBd.id;
+        let id = base64ImageBd?.id;
 
         if (!file) {
             showToast('Por favor, selecione uma imagem.', 'warning');
@@ -168,7 +169,9 @@
                 let base64String = canvas.toDataURL(file.type);
 
                 // Salva no banco de dados usando setConfig
-                setConfig(id, 'print-logo', base64String);
+                if (id) {
+                    setConfig(id, 'print-logo', base64String);
+                }
 
                 loadImage();
 

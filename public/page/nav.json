@@ -69,10 +69,10 @@
             "key": "projeto:consultar"
         },
         {
-            "title": "Configurações do Sistema",
+            "title": "Configurações",
             "dropdown": [
                 {
-                    "title": "Usuário Perfis",
+                    "title": "Perfis de Usuários",
                     "url": "/usuario/perfis",
                     "key": "perfis:listar"
                 },
@@ -93,7 +93,7 @@
                 }
             ],
             "icon": "fa-cogs",
-            "text": "Configurações gerais do Sistema.",
+            "text": "Configurações",
             "buttonText": "Configurar"
         }
     ]

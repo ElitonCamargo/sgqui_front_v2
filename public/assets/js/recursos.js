@@ -533,7 +533,15 @@ const getConfig = async (key = null) => {
         if (result.success) {
 
             if (key != null) {
-                return result.data[0];
+                if (Array.isArray(result.data)) {
+                    return result.data[0] || null;
+                }
+
+                if (result.data && typeof result.data === 'object') {
+                    return result.data;
+                }
+
+                return null;
             }
 
             return result.data;
@@ -587,6 +595,12 @@ const showError = (codErro, codStatus) => {
 const removeAcento = (str) => {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
+
+const lerValorConfig = (config) => {
+    if (!config) return null;
+    if (typeof config === 'string') return config;
+    return config.value ?? config.valor ?? config.data ?? null;
+};
 
 async function carregaMenu() {
     try {
