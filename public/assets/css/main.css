@@ -33,6 +33,86 @@
 
 .nav .navbar-toggler{margin-left: 50px;}
 
+.app-navbar .navbar-nav {
+    align-items: center;
+}
+
+.app-navbar-actions {
+    gap: 0.25rem;
+}
+
+.app-user-menu {
+    position: relative;
+}
+
+.app-user-trigger {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: 0.15rem 1.75rem 0.15rem 0.25rem;
+    border-radius: 999px;
+}
+
+.app-user-trigger::after {
+    margin-left: 0.45rem;
+}
+
+.app-user-avatar {
+    width: 26px;
+    height: 26px;
+    object-fit: cover;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.app-user-name {
+    position: absolute;
+    top: calc(100% + 0.45rem);
+    right: 0;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    white-space: nowrap;
+    padding: 0.3rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(33, 37, 41, 0.92);
+    color: #fff;
+    font-size: 0.75rem;
+    line-height: 1;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    z-index: 20;
+}
+
+.app-user-trigger:hover .app-user-name,
+.app-user-trigger:focus .app-user-name,
+.app-user-trigger:focus-visible .app-user-name {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.app-user-dropdown {
+    min-width: 220px;
+    margin-top: 0.55rem;
+}
+
+@media (max-width: 991.98px) {
+    .app-navbar-actions {
+        margin-top: 0.5rem;
+        align-items: flex-start;
+    }
+
+    .app-user-trigger {
+        padding-left: 0;
+    }
+
+    .app-user-name {
+        left: 2.1rem;
+        right: auto;
+    }
+}
+
 /* fim botão tema */
 
 table th input::placeholder {
@@ -57,6 +137,30 @@ footer {
     border-color: #8afe86;
     outline: 0;
     box-shadow: 0 0 0 .25rem rgba(13, 253, 33, 0.25);
+}
+
+#perfisEditContainer .form-check {
+    border: var(--bs-border-width, 1px) solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem 0.5rem 2rem;
+    margin-bottom: 0.35rem;
+    background-color: var(--bs-body-bg, #fff);
+}
+
+#perfisEditContainer .form-check.perfil-bloqueado {
+    background-color: var(--bs-body-bg, #fff);
+}
+
+#perfisEditContainer .form-check.perfil-bloqueado:focus,
+#perfisEditContainer .form-check.perfil-bloqueado:focus-within {
+    border-color: #fe8686;
+    outline: 0;
+    box-shadow: 0 0 0 .25rem rgba(253, 13, 13, 0.15);
+}
+
+#perfisEditContainer .form-check.perfil-bloqueado .form-check-input,
+#perfisEditContainer .form-check.perfil-bloqueado .form-check-label {
+    cursor: not-allowed;
 }
 
 /* Adiciona uma borda aos ícones dos cards */

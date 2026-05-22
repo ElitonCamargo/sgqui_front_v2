@@ -82,7 +82,7 @@ const rotear = (rotaUrl = window.location.pathname) => {
 }
 
 
-$(function () {
+$(async function () {
 
     let rota = rotear();
 
@@ -95,9 +95,27 @@ $(function () {
     }
 
     if (getSessionData('tk')) {
+        // Garante que menu e rodapé existam antes da navegação de rota.
+        if (!document.getElementById('nav')?.innerHTML.trim()) {
+            await carregaMenu();
+        }
+
+        const sessionUs = getSessionData('us');
+        if (sessionUs && sessionUs.id) {
+            await inserirNomeLogado();
+        }
+
+        if (!document.getElementById('footer')?.innerHTML.trim()) {
+            await carregaRodape();
+        }
+
         if (rota) {
             $("#root").empty();
-            $("#root").load(rota.component);
+            $("#root").load(rota.component, function () {
+                if (typeof carregaCardsHome === 'function') {
+                    carregaCardsHome();
+                }
+            });
         } else {
             $("#root").load('/page/erro.html');
         }

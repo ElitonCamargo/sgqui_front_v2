@@ -93,6 +93,15 @@
             return permissoesSessao && permissoesSessao[key] === true;
         };
 
+        const normalizarAvatar = (avatar) => {
+            const value = String(avatar || '').trim();
+            if (!value) return AVATAR_DEFAULT_SRC;
+            if (value.includes('http://dominio/') || value.includes('dominio/link_img.png')) {
+                return AVATAR_DEFAULT_SRC;
+            }
+            return value;
+        };
+
         if (!hasPerm('usuario:cadastrar')) {
             $('#btnCadastrarUsuario, .btn-cadastrar-usuario').addClass('d-none');
         }
@@ -110,25 +119,44 @@
 
             data = result.data;
 
-            const normalizarPerfis = (res) => {
+            const normalizarMapaPerfisUsuarios = (res) => {
                 const payload = res && res.data;
-                if (Array.isArray(payload)) return payload;
-                if (payload && Array.isArray(payload.perfis)) return payload.perfis;
-                if (payload && payload.perfil) return [payload.perfil];
-                return [];
+                const mapa = new Map();
+
+                if (!Array.isArray(payload)) {
+                    return mapa;
+                }
+
+                payload.forEach(item => {
+                    const perfilNome = item?.perfil?.nome;
+                    const usuarios = Array.isArray(item?.usuarios) ? item.usuarios : [];
+
+                    usuarios.forEach(usuario => {
+                        const usuarioId = String(usuario?.usuarioId || '');
+                        if (!usuarioId || !perfilNome) return;
+
+                        if (!mapa.has(usuarioId)) {
+                            mapa.set(usuarioId, []);
+                        }
+
+                        mapa.get(usuarioId).push(perfilNome);
+                    });
+                });
+
+                return mapa;
             };
 
             const carregarPerfisUsuarios = (usuarios) => {
                 const lista = usuarios || [];
-                return Promise.all(lista.map(usuario => {
-                    return req_GET(`${opt.urlUsuarioPerfis}/usuario/${usuario.id}/perfis/`)
-                        .then(res => {
-                            const perfis = normalizarPerfis(res);
-                            const nomes = perfis.map(p => p.nome).filter(Boolean);
+                return req_GET(opt.urlUsuarioPerfis)
+                    .then(res => {
+                        const mapaPerfis = normalizarMapaPerfisUsuarios(res);
+                        return lista.map(usuario => {
+                            const nomes = mapaPerfis.get(String(usuario.id)) || [];
                             return { ...usuario, perfisNomes: nomes.join(', ') };
-                        })
-                        .catch(() => ({ ...usuario, perfisNomes: '' }));
-                }));
+                        });
+                    })
+                    .catch(() => lista.map(usuario => ({ ...usuario, perfisNomes: '' })));
             };
 
             carregarPerfisUsuarios(data).then((usuariosComPerfis) => {
@@ -145,9 +173,9 @@
                             orderable: false,
                             render: function (data, type, row) {
                                 const safeAlt = (row && row.nome) ? row.nome : 'Avatar';
-                                const src = data || AVATAR_DEFAULT_SRC;
+                                const src = normalizarAvatar(data);
                                 return `
-                                                                    <img src="${src}" alt="${safeAlt}" class="rounded-circle border" style="width: 36px; height: 36px; object-fit: cover;">
+                                                                    <img src="${src}" alt="${safeAlt}" class="rounded-circle border" style="width: 36px; height: 36px; object-fit: cover;" onerror="this.onerror=null;this.src='${AVATAR_DEFAULT_SRC}';">
                                 `;
                             }
                         },
@@ -226,13 +254,13 @@
                     const canViewPerfis = isLogado ? hasPerm('usuario_perfis:listarDoUsuarioLogado') : hasPerm('usuario_perfis:listarPerfisPorUsuario');
                     const canVincular = hasPerm('usuario_perfis:vincular');
                     const canDesvincular = hasPerm('usuario_perfis:desvincular');
-                    const avatarSrc = usuario.avatar ? usuario.avatar : AVATAR_DEFAULT_SRC;
+                    const avatarSrc = normalizarAvatar(usuario.avatar);
                     let html = `
                 <div class="form-group">
                                         <div class="form-group mb-3">
                                             <label class="form-label">Avatar:</label>
                                             <div class="mb-2">
-                                                <img id="previewAvatarEdit" src="${avatarSrc}" alt="Avatar" class="rounded-circle border" style="width: 80px; height: 80px; object-fit: cover;">
+                                                <img id="previewAvatarEdit" src="${avatarSrc}" alt="Avatar" class="rounded-circle border" style="width: 80px; height: 80px; object-fit: cover;" onerror="this.onerror=null;this.src='${AVATAR_DEFAULT_SRC}';">
                                             </div>
                                             <input type="file" class="form-control" id="avatarInputEdit" name="avatar"
                                                 accept="image/jpeg,image/png,image/gif" disabled>
@@ -306,17 +334,33 @@
                         const canManagePerfis = canVincular && canDesvincular;
                         const container = $('#perfisEditContainer').empty();
                         const selecionados = new Set((selectedIds || []).map(String));
+
+                        const atualizarEstadoPerfisBloqueados = (editavel) => {
+                            $('#perfisEditContainer .perfil-checkbox-edit').each(function () {
+                                const formCheck = $(this)
+                                    .prop('disabled', !editavel)
+                                    .closest('.form-check');
+
+                                formCheck
+                                    .toggleClass('perfil-bloqueado', !editavel)
+                                    .attr('tabindex', editavel ? null : '0')
+                                    .attr('aria-disabled', editavel ? null : 'true');
+                            });
+                        };
+
                         (result.data || []).forEach(p => {
                             const checked = selecionados.has(String(p.id)) ? 'checked' : '';
-                            const disabled = (canEdit && canManagePerfis) ? '' : 'disabled';
                             const item = $(`
-                  <div class="form-check">
-                    <input class="form-check-input perfil-checkbox-edit" type="checkbox" id="perfil_edit_${p.id}" value="${p.id}" ${checked} ${disabled}>
+                  <div class="form-check perfil-bloqueado" tabindex="0" aria-disabled="true">
+                    <input class="form-check-input perfil-checkbox-edit" type="checkbox" id="perfil_edit_${p.id}" value="${p.id}" ${checked} disabled>
                     <label class="form-check-label" for="perfil_edit_${p.id}">${p.nome}</label>
                   </div>
                 `);
                             container.append(item);
                         });
+
+                        $('#perfisEditContainer').data('canManagePerfis', canEdit && canManagePerfis);
+                        atualizarEstadoPerfisBloqueados(false);
                     });
                 }
 
@@ -382,7 +426,10 @@
                     
                     // Perfis só se tiver permissão
                     if (canManagePerfis) {
-                        $('#perfisEditContainer .perfil-checkbox-edit').prop('disabled', false);
+                        $('#perfisEditContainer .perfil-checkbox-edit')
+                            .prop('disabled', false)
+                            .closest('.form-check')
+                            .removeClass('perfil-bloqueado');
                     }
                     
                     $('#btnEditar').addClass('d-none');

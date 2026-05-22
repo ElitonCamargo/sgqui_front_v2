@@ -689,6 +689,8 @@ async function carregaCardsHome() {
             return;
         }
 
+        navbarMenu.innerHTML = '';
+
         // Adiciona itens de menu e cards
         menuFiltrado.forEach(item => {
             if (item.dropdown) {
@@ -721,6 +723,7 @@ async function carregaCardsHome() {
         function criarCards() {
             const cardsContainer = document.getElementById('cards-home');
             if (cardsContainer) {
+                cardsContainer.innerHTML = '';
                 const hiddenCardKeys = new Set(['config:consultar']);
                 const hiddenCardTitles = new Set(['Configurações do Sistema']);
                 menuFiltrado.forEach(item => {
@@ -934,10 +937,32 @@ function setPerfilAtivo(perfil) {
 }
 
 function getPermissoes() {
+    
     const permissoes = getSessionData('permissoes');
     try {
         if (!permissoes) return {};
-        return typeof permissoes === 'string' ? JSON.parse(permissoes) : permissoes;
+
+        const parsed = typeof permissoes === 'string' ? JSON.parse(permissoes) : permissoes;
+
+        // Compatibilidade com payload novo: permissões agrupadas por módulo.
+        // Ex.: { formulacao: { "nutriente:consultar": true } }
+        // O restante do app espera objeto plano: { "nutriente:consultar": true }
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            const hasFlatKeys = Object.keys(parsed).some(k => k.includes(':'));
+            if (!hasFlatKeys) {
+                const flattened = {};
+                Object.values(parsed).forEach(group => {
+                    if (group && typeof group === 'object' && !Array.isArray(group)) {
+                        Object.entries(group).forEach(([k, v]) => {
+                            flattened[k] = v;
+                        });
+                    }
+                });
+                return flattened;
+            }
+        }
+
+        return parsed;
     } catch (e) {
         console.error('Erro ao parsear permissões:', e);
         return {};
@@ -960,9 +985,7 @@ async function start() {
         if (sessionUs && sessionUs.id) {
             await inserirNomeLogado();
         }
-        await carregaHome();
         await carregaRodape();
-        await carregaCardsHome();
     }
 }
 

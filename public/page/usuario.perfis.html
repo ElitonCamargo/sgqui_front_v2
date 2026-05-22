@@ -408,10 +408,292 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
             let ordemChavesMenu = [];
             let ordemAcoesPorPrefixo = {};
 
+            const SELECTORS = {
+                tabelaPerfis: '#tabela-perfis',
+                detalhesModal: '#detalhesModal',
+                cadastrarModal: '#cadastrarModal',
+                confirmacaoExclusaoModal: '#confirmacaoExclusaoModal',
+                detalhesPerfil: '#detalhesPerfil',
+                permissoesContainer: '#permissoesContainer',
+                permissoesCadastroContainer: '#permissoesCadastroContainer',
+                loadingPermissoes: '#loadingPermissoes',
+                loadingPermissoesCadastro: '#loadingPermissoesCadastro',
+                btnEditar: '#btnEditar',
+                btnSalvar: '#btnSalvar',
+                formCadastrarPerfil: '#formCadastrarPerfil',
+                formEditarPerfil: '#formEditarPerfil'
+            };
+
+            const GRUPOS_SISTEMA = ['usuarios', 'controleacesso', 'configuracoesimpressao'];
+
+            function getMensagemErro(result, fallback = 'Erro desconhecido.') {
+                return result?.message || fallback;
+            }
+
+            function sanitizarPerfil(perfil) {
+                return {
+                    ...perfil,
+                    nome: String(perfil.nome || '').trim(),
+                    descricao: String(perfil.descricao || '').trim(),
+                    id: perfil.id
+                };
+            }
+
+            function getListaBasePermissoes() {
+                return permissoesPerfilAtual.length > 0 ? permissoesPerfilAtual : todasPermissoes;
+            }
+
+            function exibirAlertaSemPermissoes(container) {
+                const alert = $('<div>').addClass('alert alert-warning').text('Nenhuma permissão disponível no sistema.');
+                container.empty().append(alert);
+            }
+
+            function alternarCheckboxesDoBloco(bloco, checkboxSelector, checked) {
+                bloco.find(`${checkboxSelector}:enabled`).each(function () {
+                    $(this).prop('checked', checked);
+                    $(this).closest('.form-check').toggleClass('perm-selecionada', checked);
+                });
+            }
+
+            function criarCampoDetalhes(config) {
+                const wrapper = $('<div>').addClass('form-group mb-3');
+                const label = $('<label>').attr('for', config.id).text(config.label);
+                const campo = config.tag === 'textarea'
+                    ? $('<textarea>')
+                    : $('<input>').attr('type', config.type || 'text');
+
+                campo
+                    .addClass('form-control')
+                    .attr('id', config.id)
+                    .attr('name', config.name || config.id)
+                    .prop('readonly', config.readonly !== false)
+                    .prop('disabled', config.disabled !== false)
+                    .attr('maxlength', config.maxlength || 255)
+                    .val(config.value || '');
+
+                if (config.required) campo.attr('required', true);
+                if (config.rows) campo.attr('rows', config.rows);
+
+                wrapper.append(label).append(campo);
+                return wrapper;
+            }
+
+            function preencherDetalhesPerfil(perfil) {
+                const nomeSeguro = String(perfil.nome || '').trim();
+                const descricaoSegura = String(perfil.descricao || '').trim();
+                const idSeguro = String(perfil.id || '');
+
+                const inputId = $('<input>')
+                    .attr('type', 'hidden')
+                    .attr('id', 'id')
+                    .attr('name', 'id')
+                    .val(idSeguro);
+
+                $(SELECTORS.detalhesPerfil)
+                    .empty()
+                    .append(criarCampoDetalhes({
+                        id: 'nome',
+                        label: 'Nome do Perfil:',
+                        value: nomeSeguro,
+                        required: true,
+                        maxlength: 100
+                    }))
+                    .append(criarCampoDetalhes({
+                        id: 'descricao',
+                        label: 'Descrição:',
+                        tag: 'textarea',
+                        value: descricaoSegura,
+                        rows: 3,
+                        maxlength: 500
+                    }))
+                    .append(inputId);
+            }
+
+            function definirModoEdicaoDetalhes(estaEditando) {
+                $(`${SELECTORS.detalhesModal} .form-control`)
+                    .prop('readonly', !estaEditando)
+                    .prop('disabled', !estaEditando);
+                $(SELECTORS.btnEditar).toggleClass('d-none', estaEditando);
+                $(SELECTORS.btnSalvar).toggleClass('d-none', !estaEditando);
+            }
+
+            function exibirErroPermissoesDetalhes() {
+                $(SELECTORS.loadingPermissoes).hide();
+                $(SELECTORS.permissoesContainer)
+                    .html('<p class="text-danger">Erro ao carregar permissões.</p>')
+                    .show();
+            }
+
+            function carregarPermissoesCadastro() {
+                return carregarOrdemRecursosMenu()
+                    .then(() => garantirTodasPermissoesCarregadas())
+                    .then(() => carregarPermissoesDoPerfil(1))
+                    .then(() => {
+                        renderizarPermissoesCadastro();
+                        $(SELECTORS.loadingPermissoesCadastro).hide();
+                        $(SELECTORS.permissoesCadastroContainer).show();
+                    });
+            }
+
+            function atualizarPerfilLocal(perfilId, dadosPerfil) {
+                const perfilIndex = (data || []).findIndex(item => String(item.id) === String(perfilId));
+                if (perfilIndex === -1) return;
+
+                data[perfilIndex] = {
+                    ...data[perfilIndex],
+                    nome: String(dadosPerfil.nome || '').trim(),
+                    descricao: String(dadosPerfil.descricao || '').trim()
+                };
+            }
+
+            function recarregarTabelaPerfis() {
+                return req_GET(opt.urlPerfis).then((res) => {
+                    const perfis = res.data;
+                    if (perfis && table) {
+                        data = perfis.map(sanitizarPerfil);
+                        table.clear().rows.add(data).draw();
+                    } else {
+                        console.error('Erro: Dados ou tabela não encontrados.');
+                    }
+                    alterado = 0;
+                }).catch((error) => {
+                    console.error('Erro ao fazer a requisição:', error);
+                });
+            }
+
+            function sanitizarPermissao(permissao, recursoFallback = '') {
+                return {
+                    ...permissao,
+                    id: Number(permissao.id),
+                    codigo: String(permissao.codigo || '').trim(),
+                    recurso: String(permissao.recurso || recursoFallback || '').trim(),
+                    descricao: String(permissao.descricao || '').trim(),
+                    metodo: String(permissao.metodo || '').trim(),
+                    rota_template: String(permissao.rota_template || '').trim(),
+                    vinculada: Boolean(permissao.vinculada)
+                };
+            }
+
+            function normalizarListaPermissoes(data) {
+                const flat = [];
+
+                const adicionarPermissao = (permissao, recursoFallback = '') => {
+                    if (!permissao || permissao.id == null) return;
+                    flat.push(sanitizarPermissao(permissao, recursoFallback));
+                };
+
+                const visitar = (payload, recursoFallback = '') => {
+                    if (!payload) return;
+
+                    if (Array.isArray(payload)) {
+                        payload.forEach(item => {
+                            if (!item) return;
+
+                            if (Array.isArray(item.permissoes)) {
+                                const recurso = String(item.recurso || recursoFallback || '').trim();
+                                item.permissoes.forEach(permissao => adicionarPermissao(permissao, recurso));
+                                return;
+                            }
+
+                            if (Array.isArray(item.recursos)) {
+                                visitar(item.recursos, recursoFallback);
+                                return;
+                            }
+
+                            if (item.id != null || item.codigo || item.metodo || item.descricao) {
+                                adicionarPermissao(item, recursoFallback);
+                                return;
+                            }
+
+                            if (typeof item === 'object') {
+                                visitar(item, recursoFallback);
+                            }
+                        });
+                        return;
+                    }
+
+                    if (typeof payload === 'object') {
+                        if (Array.isArray(payload.permissoes)) {
+                            const recurso = String(payload.recurso || recursoFallback || '').trim();
+                            payload.permissoes.forEach(permissao => adicionarPermissao(permissao, recurso));
+                            return;
+                        }
+
+                        Object.entries(payload).forEach(([key, value]) => {
+                            if (Array.isArray(value)) {
+                                visitar(value, key);
+                            }
+                        });
+                    }
+                };
+
+                visitar(data);
+
+                return flat.filter((permissao, index, lista) => {
+                    return lista.findIndex(item => item.id === permissao.id) === index;
+                });
+            }
+
+            function extrairMapaPermissoesVinculadas(data) {
+                const mapa = {};
+
+                const visitar = (payload) => {
+                    if (!payload) return;
+
+                    if (Array.isArray(payload)) {
+                        payload.forEach(item => {
+                            if (!item) return;
+
+                            if (Array.isArray(item.permissoes)) {
+                                item.permissoes.forEach(permissao => {
+                                    if (permissao && permissao.codigo) {
+                                        mapa[String(permissao.codigo).trim()] = Boolean(permissao.vinculada ?? true);
+                                    }
+                                });
+                                return;
+                            }
+
+                            if (Array.isArray(item.recursos)) {
+                                visitar(item.recursos);
+                                return;
+                            }
+
+                            if (item.codigo) {
+                                mapa[String(item.codigo).trim()] = Boolean(item.vinculada ?? true);
+                                return;
+                            }
+
+                            if (typeof item === 'object') {
+                                visitar(item);
+                            }
+                        });
+                        return;
+                    }
+
+                    if (typeof payload === 'object') {
+                        Object.entries(payload).forEach(([key, value]) => {
+                            if (typeof value === 'boolean' && key.includes(':')) {
+                                mapa[String(key).trim()] = value;
+                                return;
+                            }
+
+                            if (value && typeof value === 'object') {
+                                visitar(value);
+                            }
+                        });
+                    }
+                };
+
+                visitar(data);
+                return mapa;
+            }
+
             function garantirTodasPermissoesCarregadas() {
                 if (todasPermissoes.length > 0) return Promise.resolve(todasPermissoes);
                 if (!carregandoPermissoesPromise) {
-                    carregandoPermissoesPromise = carregarTodasPermissoes();
+                    carregandoPermissoesPromise = carregarTodasPermissoes().finally(() => {
+                        carregandoPermissoesPromise = null;
+                    });
                 }
                 return carregandoPermissoesPromise;
             }
@@ -420,32 +702,8 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
             function carregarTodasPermissoes() {
                 return req_GET(opt.urlPermissoes).then((result) => {
 
-                    if (result.success && Array.isArray(result.data)) {
-
-                        // A API retorna array de objetos { recurso, permissoes: [] }
-                        // Precisamos "achatar" para pegar todas as permissões
-                        const todasPermissoesFlat = [];
-                        result.data.forEach(item => {
-                            if (item.permissoes && Array.isArray(item.permissoes)) {
-                                item.permissoes.forEach(p => {
-                                    todasPermissoesFlat.push({
-                                        ...p,
-                                        recurso: item.recurso // Garantir que o recurso está correto
-                                    });
-                                });
-                            }
-                        });
-
-                        // Sanitizar dados das permissões
-                        todasPermissoes = todasPermissoesFlat.map(p => ({
-                            ...p,
-                            id: Number(p.id),
-                            codigo: String(p.codigo || '').trim(),
-                            recurso: String(p.recurso || '').trim(),
-                            descricao: String(p.descricao || '').trim(),
-                            metodo: String(p.metodo || '').trim(),
-                            rota_template: String(p.rota_template || '').trim()
-                        }));
+                    if (result.success && result.data) {
+                        todasPermissoes = normalizarListaPermissoes(result.data);
 
                         return todasPermissoes;
                     }
@@ -640,37 +898,28 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                 if (!data) return [];
 
                 if (Array.isArray(data)) {
-                    const flat = [];
-                    data.forEach(item => {
-                        if (item && Array.isArray(item.permissoes)) {
-                            item.permissoes.forEach(p => {
-                                flat.push({
-                                    ...p,
-                                    recurso: item.recurso || p.recurso
-                                });
-                            });
-                            return;
-                        }
-                        if (item && item.id != null) {
-                            flat.push(item);
-                        }
-                    });
-
-                    return flat.map(p => ({
-                        ...p,
-                        id: Number(p.id),
-                        recurso: String(p.recurso || '').trim(),
-                        descricao: String(p.descricao || '').trim(),
-                        metodo: String(p.metodo || '').trim(),
-                        rota_template: String(p.rota_template || '').trim(),
-                        vinculada: Boolean(p.vinculada)
-                    }));
+                    const flat = normalizarListaPermissoes(data);
+                    if (flat.length > 0) {
+                        return flat.map(p => ({
+                            ...p,
+                            vinculada: Boolean(p.vinculada ?? true)
+                        }));
+                    }
                 }
 
                 if (typeof data === 'object') {
+                    const flat = normalizarListaPermissoes(data);
+                    if (flat.length > 0) {
+                        return flat.map(p => ({
+                            ...p,
+                            vinculada: Boolean(p.vinculada ?? true)
+                        }));
+                    }
+
+                    const permissoesVinculadas = extrairMapaPermissoesVinculadas(data);
                     return (todasPermissoes || []).map(p => ({
                         ...p,
-                        vinculada: Boolean(data[p.codigo])
+                        vinculada: Boolean(permissoesVinculadas[p.codigo])
                     }));
                 }
 
@@ -714,16 +963,69 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                 });
             }
 
-            function renderizarPermissoes(perfilId = null, readonly = true) {
-                const container = $('#permissoesContainer');
-                const listaBase = permissoesPerfilAtual.length > 0 ? permissoesPerfilAtual : todasPermissoes;
+            function criarItemPermissao(permissao, options = {}) {
+                const checkboxClass = options.checkboxClass || 'permissao-checkbox';
+                const inputIdPrefix = options.inputIdPrefix || 'perm_';
+                const readonly = options.readonly === true;
+                const isChecked = options.forceUnchecked === true ? false : permissao.vinculada === true;
 
-                if (listaBase.length === 0) {
-                    const alert = $('<div>').addClass('alert alert-warning').text('Nenhuma permissão disponível no sistema.');
-                    container.empty().append(alert);
-                    return;
+                const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
+                const formCheck = $('<div>').addClass('form-check');
+                if (isChecked) {
+                    formCheck.addClass('perm-selecionada');
                 }
 
+                const checkbox = $('<input>')
+                    .addClass(`form-check-input ${checkboxClass}`)
+                    .attr('type', 'checkbox')
+                    .val(permissao.id)
+                    .attr('id', `${inputIdPrefix}${permissao.id}`)
+                    .prop('checked', isChecked)
+                    .prop('disabled', readonly);
+
+                const label = $('<label>')
+                    .addClass('form-check-label small')
+                    .attr('for', `${inputIdPrefix}${permissao.id}`)
+                    .attr('title', permissao.descricao || '');
+
+                const badge = $('<span>')
+                    .addClass('badge bg-secondary')
+                    .text(labelMetodo(permissao.metodo));
+                label.append(badge).append(' ' + (permissao.descricao || ''));
+
+                formCheck.append(checkbox).append(label);
+                col.append(formCheck);
+                return col;
+            }
+
+            function criarLinhaPermissoes(permissoes, options = {}) {
+                const row = $('<div>').addClass(options.rowClass || 'row');
+
+                (permissoes || [])
+                    .sort(compararPermissoesPorNavEMetodo)
+                    .forEach(permissao => {
+                        row.append(criarItemPermissao(permissao, options));
+                    });
+
+                return row;
+            }
+
+            function criarSubgrupoPermissoes(titulo, permissoes, options = {}) {
+                const fragment = $(document.createDocumentFragment());
+                const subTitulo = $('<div>').addClass('mt-2 mb-2 fw-semibold permissao-subtitulo');
+                const subIcon = $('<i>').addClass('fa-solid fa-folder-tree me-1');
+                subTitulo.append(subIcon).append(titulo);
+
+                fragment.append(subTitulo);
+                fragment.append(criarLinhaPermissoes(permissoes, {
+                    ...options,
+                    rowClass: 'row permissao-subtree'
+                }));
+
+                return fragment;
+            }
+
+            function montarContextoPermissoes(listaBase) {
                 const permissoesPorRecurso = montarPermissoesPorRecurso(listaBase);
                 const recursos = ordenarRecursos(Object.keys(permissoesPorRecurso), permissoesPorRecurso);
                 const chaveGarantia = recursos.find(r => normalizarRecurso(r).includes('garantia'));
@@ -753,8 +1055,6 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                 const recursosGerais = [];
 
                 recursos.forEach(recurso => {
-                    
-                    // Filtrar recursos não desejados
                     if (recurso === 'Elementos' || recurso === 'elemento' || recurso === 'Rotas') {
                         return;
                     }
@@ -776,451 +1076,92 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                     recursosGerais.push(recurso);
                 });
 
-                const temSistema = Object.values(gruposSistema).some(lista => lista.length > 0);
+                return {
+                    permissoesPorRecurso,
+                    chaveGarantia,
+                    chaveMateriaPrima,
+                    permissoesEtapa,
+                    chaveProjeto,
+                    gruposSistema,
+                    recursosGerais
+                };
+            }
+
+            function renderizarPermissoesNoContainer(config = {}) {
+                const container = $(config.containerSelector);
+                const listaBase = getListaBasePermissoes();
+
+                if (listaBase.length === 0) {
+                    exibirAlertaSemPermissoes(container);
+                    return;
+                }
+
+                const contexto = montarContextoPermissoes(listaBase);
+                const temSistema = Object.values(contexto.gruposSistema).some(lista => lista.length > 0);
+
                 container.empty();
 
-                recursosGerais.forEach(recurso => {
-
-                    // console.log("recurso", recurso)
-
-                    // Container do recurso
+                contexto.recursosGerais.forEach(recurso => {
                     const recursoDiv = $('<div>').addClass('mb-3 recurso-bloco');
+                    recursoDiv.append(criarCabecalhoRecurso(recurso, config.checkboxClass, config.readonly));
 
-                    // Título do recurso
-                    recursoDiv.append(criarCabecalhoRecurso(recurso, 'permissao-checkbox', readonly));
+                    const permissoesDoRecurso = (contexto.chaveProjeto && recurso === contexto.chaveProjeto)
+                        ? (contexto.permissoesPorRecurso[recurso] || []).filter(p => {
+                            const codigo = String(p.codigo || '').toLowerCase();
+                            return !codigo.startsWith('etapa:') && !codigo.startsWith('etapa_mp:');
+                        })
+                        : (contexto.permissoesPorRecurso[recurso] || []);
 
-                    const codigoEtapa = (p) => {
-                        const codigo = String(p.codigo || '').toLowerCase();
-                        return codigo.startsWith('etapa:') || codigo.startsWith('etapa_mp:');
-                    };
+                    recursoDiv.append(criarLinhaPermissoes(permissoesDoRecurso, config));
 
-                    const permissoesDoRecurso = (chaveProjeto && recurso === chaveProjeto)
-                        ? (permissoesPorRecurso[recurso] || []).filter(p => !codigoEtapa(p))
-                        : (permissoesPorRecurso[recurso] || []);
-
-                    // Container das permissões (grid)
-                    const row = $('<div>').addClass('row');
-
-                    // Criar checkbox para cada permissão
-                    permissoesDoRecurso
-                        .sort(compararPermissoesPorNavEMetodo)
-                        .forEach(permissao => {
-                            const isChecked = permissao.vinculada === true;
-
-                            // Coluna
-                            const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
-                            const formCheck = $('<div>').addClass('form-check');
-                            if (isChecked) {
-                                formCheck.addClass('perm-selecionada');
-                            }
-
-                            const checkbox = $('<input>')
-                                .addClass('form-check-input permissao-checkbox')
-                                .attr('type', 'checkbox')
-                                .val(permissao.id)
-                                .attr('id', 'perm_' + permissao.id)
-                                .prop('checked', isChecked)
-                                .prop('disabled', readonly);
-
-                            const label = $('<label>')
-                                .addClass('form-check-label small')
-                                .attr('for', 'perm_' + permissao.id)
-                                .attr('title', permissao.descricao || '');
-
-                            const badge = $('<span>')
-                                .addClass('badge bg-secondary')
-                                .text(labelMetodo(permissao.metodo));
-                            label.append(badge).append(' ' + (permissao.descricao || ''));
-
-                            formCheck.append(checkbox).append(label);
-                            col.append(formCheck);
-                            row.append(col);
-                        });
-
-                    recursoDiv.append(row);
-
-                    if (chaveGarantia && chaveMateriaPrima && recurso === chaveMateriaPrima && permissoesPorRecurso[chaveGarantia]) {
-                        const subTitulo = $('<div>').addClass('mt-2 mb-2 fw-semibold permissao-subtitulo');
-                        const subIcon = $('<i>').addClass('fa-solid fa-folder-tree me-1');
-                        subTitulo.append(subIcon).append('Garantias');
-                        const subRow = $('<div>').addClass('row permissao-subtree');
-
-                        permissoesPorRecurso[chaveGarantia]
-                            .sort(compararPermissoesPorNavEMetodo)
-                            .forEach(permissao => {
-                                const isChecked = permissao.vinculada === true;
-
-                                const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
-                                const formCheck = $('<div>').addClass('form-check');
-                                if (isChecked) {
-                                    formCheck.addClass('perm-selecionada');
-                                }
-
-                                const checkbox = $('<input>')
-                                    .addClass('form-check-input permissao-checkbox')
-                                    .attr('type', 'checkbox')
-                                    .val(permissao.id)
-                                    .attr('id', 'perm_' + permissao.id)
-                                    .prop('checked', isChecked)
-                                    .prop('disabled', readonly);
-
-                                const label = $('<label>')
-                                    .addClass('form-check-label small')
-                                    .attr('for', 'perm_' + permissao.id)
-                                    .attr('title', permissao.descricao || '');
-
-                                const badge = $('<span>')
-                                    .addClass('badge bg-secondary')
-                                    .text(labelMetodo(permissao.metodo));
-                                label.append(badge).append(' ' + (permissao.descricao || ''));
-
-                                formCheck.append(checkbox).append(label);
-                                col.append(formCheck);
-                                subRow.append(col);
-                            });
-
-                        recursoDiv.append(subTitulo).append(subRow);
+                    if (contexto.chaveGarantia && contexto.chaveMateriaPrima && recurso === contexto.chaveMateriaPrima && contexto.permissoesPorRecurso[contexto.chaveGarantia]) {
+                        recursoDiv.append(criarSubgrupoPermissoes('Garantias', contexto.permissoesPorRecurso[contexto.chaveGarantia], config));
                     }
 
-                    if (chaveProjeto && recurso === chaveProjeto && permissoesEtapa.length > 0) {
-                        const subTitulo = $('<div>').addClass('mt-2 mb-2 fw-semibold permissao-subtitulo');
-                        const subIcon = $('<i>').addClass('fa-solid fa-folder-tree me-1');
-                        subTitulo.append(subIcon).append('Etapas');
-                        const subRow = $('<div>').addClass('row permissao-subtree');
-
-                        permissoesEtapa
-                            .sort(compararPermissoesPorNavEMetodo)
-                            .forEach(permissao => {
-                                const isChecked = permissao.vinculada === true;
-
-                                const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
-                                const formCheck = $('<div>').addClass('form-check');
-                                if (isChecked) {
-                                    formCheck.addClass('perm-selecionada');
-                                }
-
-                                const checkbox = $('<input>')
-                                    .addClass('form-check-input permissao-checkbox')
-                                    .attr('type', 'checkbox')
-                                    .val(permissao.id)
-                                    .attr('id', 'perm_' + permissao.id)
-                                    .prop('checked', isChecked)
-                                    .prop('disabled', readonly);
-
-                                const label = $('<label>')
-                                    .addClass('form-check-label small')
-                                    .attr('for', 'perm_' + permissao.id)
-                                    .attr('title', permissao.descricao || '');
-
-                                const badge = $('<span>')
-                                    .addClass('badge bg-secondary')
-                                    .text(labelMetodo(permissao.metodo));
-                                label.append(badge).append(' ' + (permissao.descricao || ''));
-
-                                formCheck.append(checkbox).append(label);
-                                col.append(formCheck);
-                                subRow.append(col);
-                            });
-
-                        recursoDiv.append(subTitulo).append(subRow);
+                    if (contexto.chaveProjeto && recurso === contexto.chaveProjeto && contexto.permissoesEtapa.length > 0) {
+                        recursoDiv.append(criarSubgrupoPermissoes('Etapas', contexto.permissoesEtapa, config));
                     }
+
                     container.append(recursoDiv);
                 });
+
                 if (temSistema) {
                     const sistemaDiv = $('<div>').addClass('mb-3 recurso-bloco');
-                    sistemaDiv.append(criarCabecalhoRecurso('Configurações de Sistema', 'permissao-checkbox', readonly));
+                    sistemaDiv.append(criarCabecalhoRecurso('Configurações de Sistema', config.checkboxClass, config.readonly));
 
-                    ['usuarios', 'controleacesso', 'configuracoesimpressao'].forEach(grupo => {
-                        if (!gruposSistema[grupo] || gruposSistema[grupo].length === 0) return;
+                    GRUPOS_SISTEMA.forEach(grupo => {
+                        if (!contexto.gruposSistema[grupo] || contexto.gruposSistema[grupo].length === 0) return;
 
-                        const subTitulo = $('<div>').addClass('mt-2 mb-2 fw-semibold permissao-subtitulo');
-                        const subIcon = $('<i>').addClass('fa-solid fa-folder-tree me-1');
-                        subTitulo.append(subIcon).append(tituloGrupoSistema(grupo));
+                        const permissoesGrupo = grupo === 'configuracoesimpressao'
+                            ? filtrarPermissoesConfig(contexto.gruposSistema[grupo])
+                            : contexto.gruposSistema[grupo];
 
-                        const row = $('<div>').addClass('row permissao-subtree');
-                        const permissoesGrupo = grupo === 'configuracoesimpressao' 
-                            ? filtrarPermissoesConfig(gruposSistema[grupo])
-                            : gruposSistema[grupo];
-                        permissoesGrupo
-                            .sort(compararPermissoesPorNavEMetodo)
-                            .forEach(permissao => {
-                                const isChecked = permissao.vinculada === true;
-
-                                const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
-                                const formCheck = $('<div>').addClass('form-check');
-                                if (isChecked) {
-                                    formCheck.addClass('perm-selecionada');
-                                }
-
-                                const checkbox = $('<input>')
-                                    .addClass('form-check-input permissao-checkbox')
-                                    .attr('type', 'checkbox')
-                                    .val(permissao.id)
-                                    .attr('id', 'perm_' + permissao.id)
-                                    .prop('checked', isChecked)
-                                    .prop('disabled', readonly);
-
-                                const label = $('<label>')
-                                    .addClass('form-check-label small')
-                                    .attr('for', 'perm_' + permissao.id)
-                                    .attr('title', permissao.descricao || '');
-
-                                const badge = $('<span>')
-                                    .addClass('badge bg-secondary')
-                                    .text(labelMetodo(permissao.metodo));
-                                label.append(badge).append(' ' + (permissao.descricao || ''));
-
-                                formCheck.append(checkbox).append(label);
-                                col.append(formCheck);
-                                row.append(col);
-                            });
-
-                        sistemaDiv.append(subTitulo).append(row);
+                        sistemaDiv.append(criarSubgrupoPermissoes(tituloGrupoSistema(grupo), permissoesGrupo, config));
                     });
 
                     container.append(sistemaDiv);
                 }
 
-                atualizarEstadoMarcarTodos(container, 'permissao-checkbox');
+                atualizarEstadoMarcarTodos(container, config.checkboxClass);
+            }
 
+            function renderizarPermissoes(perfilId = null, readonly = true) {
+                renderizarPermissoesNoContainer({
+                    containerSelector: '#permissoesContainer',
+                    checkboxClass: 'permissao-checkbox',
+                    inputIdPrefix: 'perm_',
+                    readonly
+                });
             }
 
             function renderizarPermissoesCadastro() {
-                const container = $('#permissoesCadastroContainer');
-                const listaBase = permissoesPerfilAtual.length > 0 ? permissoesPerfilAtual : todasPermissoes;
-
-                if (listaBase.length === 0) {
-                    const alert = $('<div>').addClass('alert alert-warning').text('Nenhuma permissão disponível no sistema.');
-                    container.empty().append(alert);
-                    return;
-                }
-
-                const permissoesPorRecurso = montarPermissoesPorRecurso(listaBase);
-                const recursos = ordenarRecursos(Object.keys(permissoesPorRecurso), permissoesPorRecurso);
-                const chaveGarantia = recursos.find(r => normalizarRecurso(r).includes('garantia'));
-                const chaveMateriaPrima = recursos.find(r => {
-                    const norm = normalizarRecurso(r);
-                    return norm.includes('materia') && norm.includes('prima');
+                renderizarPermissoesNoContainer({
+                    containerSelector: '#permissoesCadastroContainer',
+                    checkboxClass: 'permissao-cadastro',
+                    inputIdPrefix: 'perm_cad_',
+                    readonly: false,
+                    forceUnchecked: true
                 });
-                const permissoesEtapa = listaBase.filter(p => {
-                    const codigo = String(p.codigo || '').toLowerCase();
-                    return codigo.startsWith('etapa:') || codigo.startsWith('etapa_mp:');
-                });
-                const recursosEtapa = new Set(
-                    recursos.filter(r => (permissoesPorRecurso[r] || []).some(p => {
-                        const codigo = String(p.codigo || '').toLowerCase();
-                        return codigo.startsWith('etapa:') || codigo.startsWith('etapa_mp:');
-                    }))
-                );
-                const chaveProjeto = recursos.find(r => (permissoesPorRecurso[r] || []).some(p => String(p.codigo || '').toLowerCase().startsWith('projeto:')))
-                    || recursos.find(r => normalizarRecurso(r).includes('projet'));
-
-                const gruposSistema = {
-                    usuarios: [],
-                    controleacesso: [],
-                    configuracoesimpressao: []
-                };
-
-                const recursosGerais = [];
-
-                recursos.forEach(recurso => {
-                    
-                    // Filtrar recursos não desejados
-                    if (recurso === 'Elementos' || recurso === 'elemento' || recurso === 'Rotas') {
-                        return;
-                    }
-
-                    if (chaveGarantia && chaveMateriaPrima && recurso === chaveGarantia) {
-                        return;
-                    }
-
-                    if (chaveProjeto && recursosEtapa.has(recurso) && recurso !== chaveProjeto) {
-                        return;
-                    }
-
-                    const grupoSistema = identificarGrupoSistema(recurso);
-                    if (grupoSistema) {
-                        gruposSistema[grupoSistema] = gruposSistema[grupoSistema].concat(permissoesPorRecurso[recurso] || []);
-                        return;
-                    }
-
-                    recursosGerais.push(recurso);
-                });
-
-                const temSistema = Object.values(gruposSistema).some(lista => lista.length > 0);
-                container.empty();
-
-                recursosGerais.forEach(recurso => {
-                    
-                    const recursoDiv = $('<div>').addClass('mb-3 recurso-bloco');
-                    recursoDiv.append(criarCabecalhoRecurso(recurso, 'permissao-cadastro', false));
-
-                    const codigoEtapa = (p) => {
-                        const codigo = String(p.codigo || '').toLowerCase();
-                        return codigo.startsWith('etapa:') || codigo.startsWith('etapa_mp:');
-                    };
-
-                    const permissoesDoRecurso = (chaveProjeto && recurso === chaveProjeto)
-                        ? (permissoesPorRecurso[recurso] || []).filter(p => !codigoEtapa(p))
-                        : (permissoesPorRecurso[recurso] || []);
-
-                    const row = $('<div>').addClass('row');
-
-                    permissoesDoRecurso
-                        .sort(compararPermissoesPorNavEMetodo)
-                        .forEach(permissao => {
-                            const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
-                            const formCheck = $('<div>').addClass('form-check');
-
-                            const checkbox = $('<input>')
-                                .addClass('form-check-input permissao-cadastro')
-                                .attr('type', 'checkbox')
-                                .val(permissao.id)
-                                .attr('id', 'perm_cad_' + permissao.id)
-                                .prop('checked', false);
-
-                            const label = $('<label>')
-                                .addClass('form-check-label small')
-                                .attr('for', 'perm_cad_' + permissao.id)
-                                .attr('title', permissao.descricao || '');
-
-                            const badge = $('<span>')
-                                .addClass('badge bg-secondary')
-                                .text(labelMetodo(permissao.metodo));
-                            label.append(badge).append(' ' + (permissao.descricao || ''));
-
-                            formCheck.append(checkbox).append(label);
-                            col.append(formCheck);
-                            row.append(col);
-                        });
-
-                    recursoDiv.append(row);
-
-                    if (chaveGarantia && chaveMateriaPrima && recurso === chaveMateriaPrima && permissoesPorRecurso[chaveGarantia]) {
-                        const subTitulo = $('<div>').addClass('mt-2 mb-2 fw-semibold permissao-subtitulo');
-                        const subIcon = $('<i>').addClass('fa-solid fa-folder-tree me-1');
-                        subTitulo.append(subIcon).append('Garantias');
-                        const subRow = $('<div>').addClass('row permissao-subtree');
-
-                        permissoesPorRecurso[chaveGarantia]
-                            .sort(compararPermissoesPorNavEMetodo)
-                            .forEach(permissao => {
-                                const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
-                                const formCheck = $('<div>').addClass('form-check');
-
-                                const checkbox = $('<input>')
-                                    .addClass('form-check-input permissao-cadastro')
-                                    .attr('type', 'checkbox')
-                                    .val(permissao.id)
-                                    .attr('id', 'perm_cad_' + permissao.id)
-                                    .prop('checked', false);
-
-                                const label = $('<label>')
-                                    .addClass('form-check-label small')
-                                    .attr('for', 'perm_cad_' + permissao.id)
-                                    .attr('title', permissao.descricao || '');
-
-                                const badge = $('<span>')
-                                    .addClass('badge bg-secondary')
-                                    .text(labelMetodo(permissao.metodo));
-                                label.append(badge).append(' ' + (permissao.descricao || ''));
-
-                                formCheck.append(checkbox).append(label);
-                                col.append(formCheck);
-                                subRow.append(col);
-                            });
-
-                        recursoDiv.append(subTitulo).append(subRow);
-                    }
-
-                    if (chaveProjeto && recurso === chaveProjeto && permissoesEtapa.length > 0) {
-                        const subTitulo = $('<div>').addClass('mt-2 mb-2 fw-semibold permissao-subtitulo');
-                        const subIcon = $('<i>').addClass('fa-solid fa-folder-tree me-1');
-                        subTitulo.append(subIcon).append('Etapas');
-                        const subRow = $('<div>').addClass('row permissao-subtree');
-
-                        permissoesEtapa
-                            .sort(compararPermissoesPorNavEMetodo)
-                            .forEach(permissao => {
-                                const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
-                                const formCheck = $('<div>').addClass('form-check');
-
-                                const checkbox = $('<input>')
-                                    .addClass('form-check-input permissao-cadastro')
-                                    .attr('type', 'checkbox')
-                                    .val(permissao.id)
-                                    .attr('id', 'perm_cad_' + permissao.id)
-                                    .prop('checked', false);
-
-                                const label = $('<label>')
-                                    .addClass('form-check-label small')
-                                    .attr('for', 'perm_cad_' + permissao.id)
-                                    .attr('title', permissao.descricao || '');
-
-                                const badge = $('<span>')
-                                    .addClass('badge bg-secondary')
-                                    .text(labelMetodo(permissao.metodo));
-                                label.append(badge).append(' ' + (permissao.descricao || ''));
-
-                                formCheck.append(checkbox).append(label);
-                                col.append(formCheck);
-                                subRow.append(col);
-                            });
-
-                        recursoDiv.append(subTitulo).append(subRow);
-                    }
-                    container.append(recursoDiv);
-                });
-                if (temSistema) {
-                    const sistemaDiv = $('<div>').addClass('mb-3 recurso-bloco');
-                    sistemaDiv.append(criarCabecalhoRecurso('Configurações de Sistema', 'permissao-cadastro', false));
-
-                    ['usuarios', 'controleacesso', 'configuracoesimpressao'].forEach(grupo => {
-                        if (!gruposSistema[grupo] || gruposSistema[grupo].length === 0) return;
-
-                        const subTitulo = $('<div>').addClass('mt-2 mb-2 fw-semibold permissao-subtitulo');
-                        const subIcon = $('<i>').addClass('fa-solid fa-folder-tree me-1');
-                        subTitulo.append(subIcon).append(tituloGrupoSistema(grupo));
-
-                        const row = $('<div>').addClass('row permissao-subtree');
-                        const permissoesGrupo = grupo === 'configuracoesimpressao' 
-                            ? filtrarPermissoesConfig(gruposSistema[grupo])
-                            : gruposSistema[grupo];
-                        permissoesGrupo
-                            .sort(compararPermissoesPorNavEMetodo)
-                            .forEach(permissao => {
-                                const col = $('<div>').addClass('col-md-6 col-lg-4 mb-2');
-                                const formCheck = $('<div>').addClass('form-check');
-
-                                const checkbox = $('<input>')
-                                    .addClass('form-check-input permissao-cadastro')
-                                    .attr('type', 'checkbox')
-                                    .val(permissao.id)
-                                    .attr('id', 'perm_cad_' + permissao.id)
-                                    .prop('checked', false);
-
-                                const label = $('<label>')
-                                    .addClass('form-check-label small')
-                                    .attr('for', 'perm_cad_' + permissao.id)
-                                    .attr('title', permissao.descricao || '');
-
-                                const badge = $('<span>')
-                                    .addClass('badge bg-secondary')
-                                    .text(labelMetodo(permissao.metodo));
-                                label.append(badge).append(' ' + (permissao.descricao || ''));
-
-                                formCheck.append(checkbox).append(label);
-                                col.append(formCheck);
-                                row.append(col);
-                            });
-
-                        sistemaDiv.append(subTitulo).append(row);
-                    });
-
-                    container.append(sistemaDiv);
-                }
-
-                atualizarEstadoMarcarTodos(container, 'permissao-cadastro');
             }
 
             function getPermissoesSelecionadasCadastro() {
@@ -1237,25 +1178,11 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
 
 
             // Carregar permissões no início
-            carregarOrdemRecursosMenu()
-                .then(() => garantirTodasPermissoesCarregadas())
-                .then(() => carregarPermissoesDoPerfil(1))
-                .then(() => {
-                    renderizarPermissoesCadastro();
-                    $('#loadingPermissoesCadastro').hide();
-                    $('#permissoesCadastroContainer').show();
-                });
+            carregarPermissoesCadastro();
 
             // Recarregar permissões ao abrir cadastro
-            $('#cadastrarModal').on('shown.bs.modal', function () {
-                carregarOrdemRecursosMenu()
-                    .then(() => garantirTodasPermissoesCarregadas())
-                    .then(() => carregarPermissoesDoPerfil(1))
-                    .then(() => {
-                        renderizarPermissoesCadastro();
-                        $('#loadingPermissoesCadastro').hide();
-                        $('#permissoesCadastroContainer').show();
-                    });
+            $(SELECTORS.cadastrarModal).on('shown.bs.modal', function () {
+                carregarPermissoesCadastro();
             });
 
             $('#permissoesContainer, #permissoesCadastroContainer').on('change', '.form-check-input', function () {
@@ -1269,46 +1196,26 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
 
             $('#permissoesContainer').on('change', '.marcar-todos-recurso', function () {
                 const bloco = $(this).closest('.recurso-bloco');
-                const checked = this.checked;
-
-                bloco.find('.permissao-checkbox:enabled').each(function () {
-                    $(this).prop('checked', checked);
-                    $(this).closest('.form-check').toggleClass('perm-selecionada', checked);
-                });
+                alternarCheckboxesDoBloco(bloco, '.permissao-checkbox', this.checked);
             });
 
             $('#permissoesCadastroContainer').on('change', '.marcar-todos-recurso', function () {
                 const bloco = $(this).closest('.recurso-bloco');
-                const checked = this.checked;
-
-                bloco.find('.permissao-cadastro:enabled').each(function () {
-                    $(this).prop('checked', checked);
-                    $(this).closest('.form-check').toggleClass('perm-selecionada', checked);
-                });
+                alternarCheckboxesDoBloco(bloco, '.permissao-cadastro', this.checked);
             });
 
             // CARREGA DADOS DOS PERFIS
             req_GET(opt.urlPerfis).then((result) => {
                 if (!result.success) {
-                    let errorMessage = (result.message || 'Erro desconhecido.');
-                    showToast(errorMessage, 'error');
+                    showToast(getMensagemErro(result), 'error');
                     return;
                 }
 
-                data = (result.data || []).map((perfil, index) => {
-                    // Sanitizar dados das permissões
-                    const sanitizado = {
-                        ...perfil,
-                        nome: String(perfil.nome || '').trim(),
-                        descricao: String(perfil.descricao || '').trim(),
-                        id: perfil.id
-                    };
-                    return sanitizado;
-                });
+                data = (result.data || []).map(sanitizarPerfil);
 
                 try {
 
-                    table = $('#tabela-perfis').DataTable({
+                    table = $(SELECTORS.tabelaPerfis).DataTable({
                         data: data,
                         order: [[3, 'desc']],
                         columns: [
@@ -1401,7 +1308,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
 
                 // Adiciona campos de pesquisa em cada cabeçalho de coluna
                 try {
-                    $('#tabela-perfis thead th').each(function () {
+                    $(`${SELECTORS.tabelaPerfis} thead th`).each(function () {
                         let title = $(this).text();
                         if (title !== "Ações") {
                             // Usar jQuery para criar o input de forma segura
@@ -1417,7 +1324,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                 }
 
                 // Adiciona evento de pesquisa para cada campo
-                $('#tabela-perfis thead th input').on('keyup', function () {
+                    $(`${SELECTORS.tabelaPerfis} thead th input`).on('keyup', function () {
                     let columnIndex = $(this).closest('th').index();
                     table.column(columnIndex).search(this.value).draw();
                 });
@@ -1427,7 +1334,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
 
 
                 ///////////////CADASTRAR///////////////////////
-                $('#formCadastrarPerfil').on('submit', function (event) {
+                $(SELECTORS.formCadastrarPerfil).on('submit', function (event) {
                     event.preventDefault();
                     const jsonData = serializadoParaJSON($(this).serialize());
                     const permissoesSelecionadas = getPermissoesSelecionadasCadastro();
@@ -1435,8 +1342,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                     req_POST(opt.urlPerfis, jsonData)
                         .then(result => {
                             if (!result.success) {
-                                let errorMessage = (result.message || 'Erro desconhecido.');
-                                showToast(errorMessage, 'error');
+                                showToast(getMensagemErro(result), 'error');
                                 return;
                             }
 
@@ -1451,8 +1357,8 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                                 }
 
                                 // console.log('[DEBUG CADASTRO 5] Perfil cadastrado com sucesso');
-                                $('#cadastrarModal').modal('hide');
-                                $('#formCadastrarPerfil')[0].reset();
+                                $(SELECTORS.cadastrarModal).modal('hide');
+                                $(SELECTORS.formCadastrarPerfil)[0].reset();
                                 alterado = 1;
                                 showToast('Perfil cadastrado com sucesso!', 'success');
 
@@ -1478,81 +1384,42 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
 
                 ///////////////EDITAR///////////////////////
                 // Abre modal de visualização e edição
-                $('#tabela-perfis').on('click', '.btn-detalhes-editar', function () {
+                $(SELECTORS.tabelaPerfis).on('click', '.btn-detalhes-editar', function () {
                     const id = $(this).data('id');
                     const perfil = data.find(item => item.id === id);
                     exibirDetalhes(perfil);
                 });
 
                 function exibirDetalhes(perfil) {
-                    // Garantir que os valores existem, são strings e estão limpos
-                    const nomeSeguro = String(perfil.nome || '').trim();
-                    const descricaoSegura = String(perfil.descricao || '').trim();
-                    const idSeguro = String(perfil.id || '');
-
-                    // Criar elementos DOM de forma segura
-                    const divNome = $('<div>').addClass('form-group mb-3');
-                    const labelNome = $('<label>').attr('for', 'nome').text('Nome do Perfil:');
-                    const inputNome = $('<input>')
-                        .attr('type', 'text')
-                        .addClass('form-control')
-                        .attr('id', 'nome')
-                        .attr('name', 'nome')
-                        .val(nomeSeguro)
-                        .prop('readonly', true)
-                        .attr('required', true)
-                        .attr('maxlength', '100');
-                    divNome.append(labelNome).append(inputNome);
-
-                    const divDescricao = $('<div>').addClass('form-group mb-3');
-                    const labelDescricao = $('<label>').attr('for', 'descricao').text('Descrição:');
-                    const textareaDescricao = $('<textarea>')
-                        .addClass('form-control')
-                        .attr('id', 'descricao')
-                        .attr('name', 'descricao')
-                        .attr('rows', '3')
-                        .prop('readonly', true)
-                        .attr('maxlength', '500')
-                        .val(descricaoSegura);
-                    divDescricao.append(labelDescricao).append(textareaDescricao);
-
-                    const inputId = $('<input>')
-                        .attr('type', 'hidden')
-                        .attr('id', 'id')
-                        .attr('name', 'id')
-                        .val(idSeguro);
-
-                    $('#detalhesPerfil').empty().append(divNome).append(divDescricao).append(inputId);
-                    $('#permissoesContainer').hide();
-                    $('#loadingPermissoes').show();
-                    $('#detalhesModal').modal('show');
+                    preencherDetalhesPerfil(perfil);
+                    definirModoEdicaoDetalhes(false);
+                    $(SELECTORS.permissoesContainer).hide();
+                    $(SELECTORS.loadingPermissoes).show();
+                    $(SELECTORS.detalhesModal).modal('show');
 
                     garantirTodasPermissoesCarregadas()
                         .then(() => carregarPermissoesDoPerfil(perfil.id))
                         .then(() => {
                             renderizarPermissoes(perfil.id, true);
-                            $('#loadingPermissoes').hide();
-                            $('#permissoesContainer').show();
+                            $(SELECTORS.loadingPermissoes).hide();
+                            $(SELECTORS.permissoesContainer).show();
                         })
                         .catch(err => {
-                            $('#loadingPermissoes').hide();
-                            $('#permissoesContainer').html('<p class="text-danger">Erro ao carregar permissões.</p>').show();
+                            exibirErroPermissoesDetalhes();
                         });
                 }
 
                 // Adicionar evento de clique para o botão "Editar"
-                $('#detalhesModal').on('click', '#btnEditar', function () {
+                $(SELECTORS.detalhesModal).on('click', SELECTORS.btnEditar, function () {
                     const perfilId = $('#id').val();
-                    $('.form-control').prop('readonly', false);
-                    $('#btnEditar').addClass('d-none');
-                    $('#btnSalvar').removeClass('d-none');
+                    definirModoEdicaoDetalhes(true);
 
                     // Re-renderiza em modo edição para habilitar os checkboxes
                     renderizarPermissoes(parseInt(perfilId, 10), false);
                 });
 
                 // Adicionar evento de submit para o formulário de edição
-                $('#formEditarPerfil').on('submit', function (event) {
+                $(SELECTORS.formEditarPerfil).on('submit', function (event) {
                     event.preventDefault();
                     const jsonData = serializadoParaJSON($(this).serialize());
                     const permissoesSelecionadas = getPermissoesSelecionadasEdicao();
@@ -1562,8 +1429,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                     req_PUT(opt.urlPerfis + "/" + jsonData.id, jsonData)
                         .then(result => {
                             if (!result.success) {
-                                let errorMessage = (result.message || 'Erro desconhecido.');
-                                showToast(errorMessage, 'error');
+                                showToast(getMensagemErro(result), 'error');
                                 return;
                             }
 
@@ -1578,23 +1444,15 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                                 return;
                             }
 
-                            const perfilIndex = (data || []).findIndex(item => String(item.id) === String(perfilId));
-                            if (perfilIndex !== -1) {
-                                data[perfilIndex] = {
-                                    ...data[perfilIndex],
-                                    nome: String(jsonData.nome || '').trim(),
-                                    descricao: String(jsonData.descricao || '').trim()
-                                };
-                            }
+                            atualizarPerfilLocal(perfilId, jsonData);
 
-                            $('#detalhesPerfil #nome').val(jsonData.nome).prop('readonly', true);
-                            $('#detalhesPerfil #descricao').val(jsonData.descricao).prop('readonly', true);
-                            $('#btnSalvar').addClass('d-none');
-                            $('#btnEditar').removeClass('d-none');
+                            $(`${SELECTORS.detalhesPerfil} #nome`).val(jsonData.nome);
+                            $(`${SELECTORS.detalhesPerfil} #descricao`).val(jsonData.descricao);
+                            definirModoEdicaoDetalhes(false);
                             renderizarPermissoes(perfilId, true);
                             showToast('Perfil atualizado com sucesso!', 'success');
                             setTimeout(() => {
-                                $('#detalhesModal').modal('hide');
+                                $(SELECTORS.detalhesModal).modal('hide');
                             }, 1800);
                             alterado = 1;
                         })
@@ -1604,18 +1462,17 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                 });
 
                 // Limpa modal ao fechar
-                $('#detalhesModal').on('hidden.bs.modal', function () {
-                    $('#detalhesPerfil').empty();
-                    $('#permissoesContainer').empty().hide();
-                    $('#btnSalvar').addClass('d-none');
-                    $('#btnEditar').removeClass('d-none');
+                $(SELECTORS.detalhesModal).on('hidden.bs.modal', function () {
+                    $(SELECTORS.detalhesPerfil).empty();
+                    $(SELECTORS.permissoesContainer).empty().hide();
+                    definirModoEdicaoDetalhes(false);
                     permissoesPerfilAtual = [];
                 });
 
                 ///////////////FIM EDITAR///////////////////////
 
                 ///////////////EXCLUIR///////////////////////
-                $('#tabela-perfis').on('click', '.btn-excluir', function () {
+                $(SELECTORS.tabelaPerfis).on('click', '.btn-excluir', function () {
                     const id = $(this).data('id');
                     const nome = $(this).data('nome');
                     excluirPerfil(id, nome);
@@ -1628,17 +1485,16 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                     }
 
                     $('#nomeExclui').text(nome);
-                    $('#confirmacaoExclusaoModal').modal('show');
+                    $(SELECTORS.confirmacaoExclusaoModal).modal('show');
 
                     $('#confirmarExclusao').off('click').on('click', function () {
                         req_DELETE(opt.urlPerfis + "/" + id).then((result) => {
                             if (!result.success) {
-                                let errorMessage = (result.message || 'Erro desconhecido.');
-                                showToast(errorMessage, 'error');
+                                showToast(getMensagemErro(result), 'error');
                                 return;
                             }
 
-                            $('#confirmacaoExclusaoModal').modal('hide');
+                            $(SELECTORS.confirmacaoExclusaoModal).modal('hide');
                             showToast('Perfil excluído com sucesso!', 'success');
                             alterado = 1;
                         }).catch(error => {
@@ -1650,17 +1506,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                 // FUNÇÕES AUXILIARES
                 $('.modal').on('hidden.bs.modal', function () {
                     if (alterado !== 0) {
-                        req_GET(opt.urlPerfis).then((res) => {
-                            let data = res.data;
-                            if (data && table) {
-                                table.clear().rows.add(data).draw();
-                            } else {
-                                console.error("Erro: Dados ou tabela não encontrados.");
-                            }
-                            alterado = 0;
-                        }).catch((error) => {
-                            console.error("Erro ao fazer a requisição:", error);
-                        });
+                        recarregarTabelaPerfis();
                     }
                 });
 
