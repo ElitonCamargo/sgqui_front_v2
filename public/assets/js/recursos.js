@@ -206,8 +206,23 @@ const req_PUT = async (url = "", data = {}, preload = false) => {
         preload && hidePreload();
 
         if (!response.ok) {
-            // console.log(response);
-            throw new Error('Failed to fetch');
+            let errorMessage = 'Erro ao atualizar dados';
+            let errorData = null;
+
+            try {
+                const errorResponse = await response.json();
+                errorData = errorResponse?.data ?? null;
+                errorMessage = errorResponse?.message || errorResponse?.erro?.message || errorMessage;
+            } catch (_) {
+                // Mantem mensagem padrao quando resposta nao e JSON
+            }
+
+            return {
+                success: false,
+                status: response.status,
+                message: errorMessage,
+                data: errorData
+            };
         }
         return await response.json();
     } catch (error) {
@@ -260,7 +275,6 @@ const req_DELETE = async (url = '', preload = false) => {
         };
     }
 }
-
 
 // TRATAMENTO DE AVATAR
 const AVATAR_DEFAULT_SRC = '/assets/img/user-default.png';

@@ -41,6 +41,26 @@ $(function () {
 
 });
 
+function initBootstrapTooltipsIn(container) {
+    if (typeof bootstrap === 'undefined') return;
+    const root = container || document;
+    const elements = root.querySelectorAll('.btn[title], button[title], a[title].btn');
+
+    elements.forEach((el) => {
+        el.setAttribute('data-bs-toggle', 'tooltip');
+        if (!el.getAttribute('data-bs-placement')) {
+            el.setAttribute('data-bs-placement', 'top');
+        }
+
+        const existing = bootstrap.Tooltip.getInstance(el);
+        if (existing) {
+            existing.dispose();
+        }
+
+        new bootstrap.Tooltip(el);
+    });
+}
+
 window.getStandardDataTableLanguage = function getStandardDataTableLanguage(overrides) {
     return $.extend(true, {}, $.fn.dataTable.defaults.language || {}, overrides || {});
 };
@@ -52,7 +72,15 @@ window.createStandardDataTable = function createStandardDataTable(tableSelector,
     }
 
     const config = $.extend(true, {
-        searching: true
+        searching: true,
+        drawCallback: function () {
+            const tableNode = this && this.api ? this.api().table().container() : null;
+            if (tableNode) initBootstrapTooltipsIn(tableNode);
+        },
+        initComplete: function () {
+            const tableNode = this && this.api ? this.api().table().container() : null;
+            if (tableNode) initBootstrapTooltipsIn(tableNode);
+        }
     }, options || {});
 
     return $(tableSelector).DataTable(config);

@@ -44,7 +44,7 @@
                     "key": "config:consultar"
                 }
             ],
-            "icon": "fa-gear",
+            "icon": "fa-flask-vial",
             "text": "Módulo de formulação com elementos, nutrientes, matéria prima e projetos.",
             "buttonText": "Ver Formulação"
         },

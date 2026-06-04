@@ -237,7 +237,6 @@
     const contextoModal = window.__regProdutoModalContext || 'cadastro';
     const produtoIdInicial = produtoInicial && produtoInicial.id ? produtoInicial.id : null;
     let produtoCadastroAtual = null;
-    let projetoOrigemAtual = null;
     const catalogoMateriasPrimas = new Map();
     const materiasPrimasLista = [];
 
@@ -252,11 +251,12 @@
       return Number.isFinite(numero) ? numero : null;
     };
 
-    const normalizarUnidadeMedida = (valor) => {
-      const unidade = String(valor || '').trim().toLowerCase();
-      if (!unidade) return 'L';
-      if (unidade === 'l' || unidade === 'litro' || unidade === 'litros') return 'L';
-      if (unidade === 'kg' || unidade === 'quilo' || unidade === 'quilos' || unidade === 'kilo' || unidade === 'kilos') return 'Kg';
+    const mapStatusApiParaUi = (status) => {
+      const valor = String(status || '').trim();
+      if (!valor) return 'Rascunho';
+      if (valor === 'Solicitado' || valor === 'Em análise' || valor === 'Pendente documentação') return 'Aguardando';
+      if (valor === 'Aprovado' || valor === 'Registrado') return 'Liberado';
+      if (valor === 'Suspenso' || valor === 'Cancelado') return 'Rascunho';
       return valor;
     };
 
@@ -264,21 +264,21 @@
       const statusOrigem = origem?.status;
 
       if (typeof statusOrigem === 'string' && statusOrigem.trim()) {
-        return statusOrigem.trim();
+        return mapStatusApiParaUi(statusOrigem);
       }
 
       if (Array.isArray(statusOrigem) && statusOrigem.length > 0) {
         const primeiro = statusOrigem[0];
-        if (typeof primeiro === 'string' && primeiro.trim()) return primeiro.trim();
+        if (typeof primeiro === 'string' && primeiro.trim()) return mapStatusApiParaUi(primeiro);
         if (primeiro && typeof primeiro === 'object') {
           const valor = primeiro.status || primeiro.nome || primeiro.descricao;
-          if (typeof valor === 'string' && valor.trim()) return valor.trim();
+          if (typeof valor === 'string' && valor.trim()) return mapStatusApiParaUi(valor);
         }
       }
 
       if (statusOrigem && typeof statusOrigem === 'object') {
         const valor = statusOrigem.status || statusOrigem.nome || statusOrigem.descricao;
-        if (typeof valor === 'string' && valor.trim()) return valor.trim();
+        if (typeof valor === 'string' && valor.trim()) return mapStatusApiParaUi(valor);
       }
 
       return 'Rascunho';
@@ -420,7 +420,6 @@
         }
 
         itens.push({
-          materia_prima_id: materiaId || null,
           cod_item: codigo || materia?.codigo || '',
           desc_item: descricao || materia?.nome || '',
           percentual,
@@ -445,7 +444,7 @@
     const renderEmbalagemLinha = (item = {}) => `
       <tr>
         <td class="text-center align-middle fw-semibold item-index"></td>
-        <td><input type="text" class="form-control form-control-sm criar-emb-quantidade" value="${item.quantidade || ''}" placeholder="Ex: 20L"></td>
+        <td><input type="text" class="form-control form-control-sm criar-emb-quantidade" value="${item.tamanho || item.quantidade || ''}" placeholder="Ex: 20L"></td>
         <td><input type="text" class="form-control form-control-sm criar-emb-descricao" value="${item.descricao || ''}" placeholder="Descrição da embalagem"></td>
         <td class="text-center">
           <button type="button" class="btn btn-outline-danger btn-sm btn-remover-embalagem"><i class="fa-solid fa-trash"></i></button>
@@ -478,7 +477,7 @@
     const resolverEmbalagens = (origem) => {
       if (Array.isArray(origem?.embalagens)) {
         return origem.embalagens.map((item) => ({
-          quantidade: item?.quantidade || '',
+          tamanho: item?.tamanho || item?.quantidade || '',
           descricao: item?.descricao || ''
         }));
       }
@@ -488,7 +487,7 @@
           const parsed = JSON.parse(origem.embalagens);
           if (Array.isArray(parsed)) {
             return parsed.map((item) => ({
-              quantidade: item?.quantidade || '',
+              tamanho: item?.tamanho || item?.quantidade || '',
               descricao: item?.descricao || ''
             }));
           }
@@ -513,7 +512,7 @@
         if (!quantidade && !descricao) return;
 
         itens.push({
-          quantidade,
+          tamanho: quantidade,
           descricao
         });
       });
@@ -563,6 +562,12 @@
         });
       });
       return itens;
+    };
+
+    const compactarPayload = (obj) => {
+      return Object.fromEntries(
+        Object.entries(obj).filter(([, valor]) => valor !== null && valor !== undefined)
+      );
     };
 
     const calcularQtdFormula = (densidade, percentual) => {
@@ -680,7 +685,7 @@
       $('#criarStatus').val(statusProduto);
       $('#criarTipo').val(origem.tipo || '');
       $('#criarNatureza').val(origem.natureza_fisica || '');
-      $('#criarUnidMedida').val(normalizarUnidadeMedida(origem.unid_medida));
+      $('#criarUnidMedida').val(origem.unid_medida || 'L');
       $('#criarCapacidade').val(origem.capacidade || '');
       $('#criarGrupo').val(origem.grupo || '');
       $('#criarSubgrupo').val(origem.subgrupo || '');
@@ -719,12 +724,6 @@
         return;
       }
       origem = detProduto.data;
-
-      if (origem?.projeto) {
-        projetoOrigemAtual = origem.projeto;
-      } else {
-        projetoOrigemAtual = null;
-      }
 
       produtoCadastroAtual = origem;
       $('#modalCriarProdutoTitulo').text(contextoModal === 'edicao' ? 'Editar Produto Regulatório' : 'Cadastro de Produto Regulatório');
@@ -800,13 +799,11 @@
     $('#formCriarProduto').on('submit', async function (e) {
       e.preventDefault();
 
-      const payload = {
-        id: $('#criarProdId').val() || null,
-        projeto_id: $('#criarProdProjetoId').val(),
+      const payloadBase = {
         n_desenvolvimento: $('#criarNDesenvolvimento').val(),
         descricao: $('#criarDescricao').val(),
-        data_emissao: $('#criarDataEmissao').val(),
-        unid_medida: $('#criarUnidMedida').val(),
+        data_emissao: $('#criarDataEmissao').val() || null,
+        unid_medida: $('#criarUnidMedida').val() || 'L',
         capacidade: toNumberOrNull($('#criarCapacidade').val()),
         grupo: $('#criarGrupo').val(),
         subgrupo: $('#criarSubgrupo').val(),
@@ -818,7 +815,7 @@
         validade: $('#criarValidade').val(),
         n_registro: $('#criarNRegistro').val(),
         densidade: toNumberOrNull($('#criarDensidade').val()),
-        status: $('#criarStatus').val(),
+        status: $('#criarStatus').val() || 'Rascunho',
         tipo: $('#criarTipo').val(),
         natureza_fisica: $('#criarNatureza').val(),
         aplicacao: $('.criar-aplicacao-cb:checked').map(function () { return $(this).val(); }).get(),
@@ -827,13 +824,16 @@
         embalagens: coletarEmbalagensCriar()
       };
 
+      const payload = compactarPayload(payloadBase);
+      const produtoId = toNumberOrNull($('#criarProdId').val());
+
       try {
-        if (!payload.id) {
+        if (!produtoId) {
           showToast('Id do produto não informado para salvar.', 'error');
           return;
         }
 
-        const result = await req_PUT(`${opt.urlRegulacaoProdutos}/${payload.id}`, payload);
+        const result = await req_PUT(`${opt.urlRegulacaoProdutos}/${produtoId}`, payload);
         if (!result.success) {
           showToast(result.message || 'Erro ao salvar produto.', 'error');
           return;
@@ -844,6 +844,7 @@
         if (typeof window.regulacaoAtualizarTabelaProdutos === 'function') {
           await window.regulacaoAtualizarTabelaProdutos();
         }
+        window.location.reload();
       } catch (error) {
         showToast(`Erro: ${error.message || 'Erro desconhecido.'}`, 'error');
       }
@@ -851,7 +852,6 @@
 
     $('#modalCriarProduto').on('hidden.bs.modal', function () {
       produtoCadastroAtual = null;
-      projetoOrigemAtual = null;
       $('#modalCriarProdutoContent').empty();
       window.__regProjetoSelecionado = null;
       window.__regProdutoSelecionado = null;

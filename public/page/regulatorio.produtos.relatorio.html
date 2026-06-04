@@ -262,7 +262,7 @@
     // ─── Status regulatório do produto ──────────────────────────────────────────
     const statusProdutoOpts = (typeof statusProdutoRegulatorio !== 'undefined')
       ? statusProdutoRegulatorio
-      : ['Solicitado', 'Em análise', 'Pendente documentação', 'Aprovado', 'Registrado', 'Suspenso', 'Cancelado'];
+      : ['Rascunho', 'Aguardando', 'Liberado'];
 
     // ─── Preenche selects do modal ───────────────────────────────────────────────
     function preencherSelects() {
@@ -404,7 +404,7 @@
               render: function (value, type, row) {
                 if (type !== 'display') return row.status || '';
                 if (!row.status) return '—';
-                const cor = row.status === 'Aprovado' || row.status === 'Registrado' ? 'success' : 'secondary';
+                const cor = row.status === 'Liberado' ? 'success' : (row.status === 'Aguardando' ? 'warning' : 'secondary');
                 return `<span class="badge text-bg-${cor}">${row.status}</span>`;
               }
             },

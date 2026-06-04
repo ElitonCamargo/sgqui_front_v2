@@ -54,6 +54,8 @@ const selectsProjeto = {
     modoAplicacao: [
         "Foliar",
         "Fertirrigação",
+        "Pulverização",
+        "Adubação",
         "Solo",
         "Hidroponia",
         "Semente"
@@ -71,11 +73,6 @@ const statusRelatorioProducao = [
 
 const statusProdutoRegulatorio = [
     'Rascunho',
-    'Solicitado',
-    'Em análise',
-    'Pendente documentação',
-    'Aprovado',
-    'Registrado',
-    'Suspenso',
-    'Cancelado'
+    'Aguardando',
+    'Liberado'
 ];
