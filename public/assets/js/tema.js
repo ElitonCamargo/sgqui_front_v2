@@ -1,5 +1,11 @@
 $(document).ready(function() {
     const themeToggleBtn = $('#theme-toggle');
+
+    function applyTheme(theme) {
+        $('html').attr('data-bs-theme', theme);
+        document.documentElement.style.colorScheme = theme;
+        localStorage.setItem('theme', theme);
+    }
   
     // Função para alternar o tema e salvar a preferência no localStorage
     function toggleTheme() {
@@ -10,11 +16,9 @@ $(document).ready(function() {
   
         // Alterna entre os temas e ajusta o atributo 'data-bs-theme' na tag <html>
         if (isDarkTheme) {
-            htmlTag.removeAttr('data-bs-theme');
-            localStorage.setItem('theme', 'light');
+            applyTheme('light');
         } else {
-            htmlTag.attr('data-bs-theme', 'dark');
-            localStorage.setItem('theme', 'dark');
+            applyTheme('dark');
         }
     }
   
@@ -23,9 +27,11 @@ $(document).ready(function() {
     const savedTheme = localStorage.getItem('theme');
   
     if (savedTheme) {
-        $('html').attr('data-bs-theme', savedTheme);
+        applyTheme(savedTheme);
     } else if (prefersDarkTheme) {
-        $('html').attr('data-bs-theme', 'dark');
+        applyTheme('dark');
+    } else {
+        applyTheme('light');
     }
   
     // Adicionar evento ao botão de alternar tema

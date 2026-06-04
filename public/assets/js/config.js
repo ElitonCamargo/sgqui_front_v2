@@ -1,4 +1,5 @@
 const urlApi = 'http://localhost:3031';
+// const urlApi = 'http://back.fertiglobalbrasil.com.br';
 //
 
 const opt = {
@@ -21,34 +22,60 @@ const opt = {
   "urlGarantia": `${urlApi}/formulacao/garantia`,
   "urlGarantiaMateriaPrima": `${urlApi}/formulacao/garantia/materia_prima`,
   "urlProjeto": `${urlApi}/formulacao/projeto`,
+  "urlRegulacaoProjeto": `${urlApi}/regulatorio/projeto`,
+  "urlRegulacaoProdutos": `${urlApi}/regulatorio/produtos`,
+  "urlProducaoProdutos": `${urlApi}/producao/produtos`,
+  "urlRegistrosProducao": `${urlApi}/producao/registros_producao`,
   "urlEtapa": `${urlApi}/formulacao/etapa`,
   "urlEtapaMp": `${urlApi}/formulacao/etapa_mp`,
   "urlConfig": `${urlApi}/formulacao/configuracao`
 }
 
-
+//OPTIONS PARA OS SELECTS DE PROJETO
 const selectsProjeto = {
-  status: [
-    "Não Iniciado",
-    'Inicializando',
-    "Em Andamento",
-    "Finalizado"
-  ],
-  natureza: [
-    "Fluido (Solução)",
-    "Fluido (Suspensão)",
-    "Susp. Concentrada",
-    "Sólido"
-  ],
-  tipoFertilizante: [
-    "Mineral Misto/Simples",
-    "Organomineral"
-  ],
-  modoAplicacao: [
-    "Foliar",
-    "Fertirrigação",
-    "Solo",
-    "Hidroponia",
-    "Semente"
-  ]
+    status: [
+        "Não inicializado",
+        "Inicializado",
+        "Em andamento",
+        "Finalizado",
+        "Liberado",
+        "Bloqueado"
+    ],
+    natureza: [
+        "Fluido (Solução)",
+        "Fluido (Suspensão)",
+        "Susp. Concentrada",
+        "Sólido"
+    ],
+    tipoFertilizante: [
+        "Mineral Misto/Simples",
+        "Organomineral"
+    ],
+    modoAplicacao: [
+        "Foliar",
+        "Fertirrigação",
+        "Solo",
+        "Hidroponia",
+        "Semente"
+    ]
 };
+
+
+const statusRelatorioRegulacao = [
+    'Liberado'
+];
+
+const statusRelatorioProducao = [
+    'Liberado'
+];
+
+const statusProdutoRegulatorio = [
+    'Rascunho',
+    'Solicitado',
+    'Em análise',
+    'Pendente documentação',
+    'Aprovado',
+    'Registrado',
+    'Suspenso',
+    'Cancelado'
+];

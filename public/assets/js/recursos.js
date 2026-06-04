@@ -75,7 +75,7 @@ $(function () {
 
                     }
                 } else {
-                    $('#loginErro').text(data.erro);
+                    $('#loginErro').text(data.error);
                     $('#loginErro').show();
                 }
             })
@@ -264,6 +264,7 @@ const req_DELETE = async (url = '', preload = false) => {
 
 // TRATAMENTO DE AVATAR
 const AVATAR_DEFAULT_SRC = '/assets/img/user-default.png';
+
 
 const validarArquivoAvatar = (file, options = {}) => {
     const validTypes = options.validTypes || ['image/jpeg', 'image/png', 'image/gif'];
@@ -744,18 +745,41 @@ async function carregaCardsHome() {
                     if ((item.key && hiddenCardKeys.has(item.key)) || hiddenCardTitles.has(item.title)) {
                         return;
                     }
+
+                    const submenus = Array.isArray(item.dropdown)
+                        ? item.dropdown.map(subItem => `
+                            <li>
+                                <a class="home-submenu-link" href="${subItem.url}">
+                                    <span>${subItem.title}</span>
+                                    <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+                                </a>
+                            </li>
+                        `).join('')
+                        : item.url
+                            ? `
+                                <li>
+                                    <a class="home-submenu-link" href="${item.url}">
+                                        <span>${item.title}</span>
+                                        <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+                                    </a>
+                                </li>
+                            `
+                            : '';
+
                     const cardElement = document.createElement('div');
-                    cardElement.className = 'col-md-3 mb-3';
+                    cardElement.className = 'col-12 col-sm-6 col-xl-3 d-flex';
                     cardElement.innerHTML = `
-                    <div class="card shadow">
-                        <a class="card-body text-center" href="${getCardUrl(item)}" style="
-                        text-decoration:none;
-                        line-height: 3.5em;
-                        ">
-                            <i class="fa-solid fa-2xl ${item.icon}"></i>
-                            <h5 class="card-title">${item.title}</h5>
-                            <p class="card-text">${item.text}</p>
-                        </a>
+                    <div class="card shadow-sm home-module-card w-100">
+                        <div class="card-body d-flex flex-column">
+                            <div class="home-module-header text-center">
+                                <i class="fa-solid fa-2xl ${item.icon}"></i>
+                                <h5 class="card-title">${item.title}</h5>
+                                <p class="card-text">${item.text || ''}</p>
+                            </div>
+                            <ul class="home-submenu-list" aria-label="Submenus de ${item.title}">
+                                ${submenus}
+                            </ul>
+                        </div>
                     </div>
             `;
                     cardsContainer.appendChild(cardElement);
@@ -911,7 +935,7 @@ function showToast(message, type = 'info') {
         'info': { bg: 'info', title: 'Informação' }
     };
     const config = typeConfig[type] || typeConfig['info'];
-    
+
     const toast = $(`
         <div class="toast position-fixed top-0 end-0 m-3" role="alert" style="z-index: 9999;">
             <div class="toast-header bg-${config.bg} text-white">
@@ -951,7 +975,7 @@ function setPerfilAtivo(perfil) {
 }
 
 function getPermissoes() {
-    
+
     const permissoes = getSessionData('permissoes');
     try {
         if (!permissoes) return {};
@@ -983,6 +1007,10 @@ function getPermissoes() {
     }
 }
 
+const permissoes = getPermissoes();
+
+
+
 async function start() {
     if (!getSessionData('tk')) {
         document.getElementById('nav').innerHTML = '';
@@ -1003,4 +1031,5 @@ async function start() {
     }
 }
 
-const permissoes = getPermissoes();
+
+

@@ -1,0 +1,17 @@
+{
+    "postman.settings.dotenv-detection-notification-visibility": false,
+    "chat.tools.terminal.autoApprove": {
+        "/^rg -n \"QTD\\\\\\. FÓRMULA\\|colspan=\\\\\"5\\\\\"\\|criar-form-materia-id\\|resolverGarantiasProjeto\\|urlGarantiaMateriaPrima\\|change blur\\|preencherSelectsCriar\\\\\\(\\\\\\);\\|carregarProjetoInicial\\\\\\(\\\\\\);\" public/page/regulatorio\\.projetos\\.produto\\.modal\\.html$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Select-String -Path \"public/page/regulatorio\\.projetos\\.produto\\.modal\\.html\" -Pattern \"QTD\\. FÓRMULA\\|colspan=\\\\\"5\\\\\"\\|criar-form-materia-id\\|resolverGarantiasProjeto\\|urlGarantiaMateriaPrima\\|change blur\\|preencherSelectsCriar\\\\\\(\\\\\\);\\|carregarProjetoInicial\\\\\\(\\\\\\);\" \\| ForEach-Object \\{ \"\\{0\\}:\\{1\\}\" -f \\$_\\.LineNumber, \\$_\\.Line\\.Trim\\(\\) \\}$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^\\$patterns = @\\('QTD\\. FÓRMULA','colspan=\"5\"','criar-form-materia-id','resolverGarantiasProjeto','urlGarantiaMateriaPrima','change blur','await preencherSelectsCriar\\(\\);','await carregarProjetoInicial\\(\\);'\\); Select-String -Path \"public/page/regulatorio\\.projetos\\.produto\\.modal\\.html\" -Pattern \\$patterns \\| ForEach-Object \\{ \"\\{0\\}:\\{1\\}\" -f \\$_\\.LineNumber, \\$_\\.Line\\.Trim\\(\\) \\}$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

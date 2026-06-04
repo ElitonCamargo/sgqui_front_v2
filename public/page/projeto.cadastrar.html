@@ -159,24 +159,33 @@
     });
 
 
+
     //adiciona options no select do config.js
-    optionStatus = ''
-    $.each(selectsProjeto.status, function (k, v) {
-      optionStatus += `<option value="${v}">${v}</option>`
-    })
-    $('#status').append(optionStatus);
+    Promise
+      .resolve(typeof selectsProjetoReady !== 'undefined' ? selectsProjetoReady : null)
+      .finally(function () {
+        let optionStatus = ''
 
-    optionStatus = ''
-    $.each(selectsProjeto.natureza, function (k, v) {
-      optionStatus += `<option value="${v}">${v}</option>`
-    })
-    $('#natureza_fisica').append(optionStatus);
 
-    optionStatus = ''
-    $.each(selectsProjeto.tipoFertilizante, function (k, v) {
-      optionStatus += `<option value="${v}">${v}</option>`
-    })
-    $('#tipo').append(optionStatus);
+        $.each(selectsProjeto.status, function (k, v) {
+          optionStatus += `<option value="${v}">${v}</option>`
+        })
+        
+
+        $('#status').append(optionStatus);
+
+        optionStatus = ''
+        $.each(selectsProjeto.natureza, function (k, v) {
+          optionStatus += `<option value="${v}">${v}</option>`
+        })
+        $('#natureza_fisica').append(optionStatus);
+
+        optionStatus = ''
+        $.each(selectsProjeto.tipoFertilizante, function (k, v) {
+          optionStatus += `<option value="${v}">${v}</option>`
+        })
+        $('#tipo').append(optionStatus);
+      });
 
 
 

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ordem de Produção</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 10pt;
+      margin: 20px;
+      color: #111;
+    }
+
+    h2, h3, h4 {
+      margin: 0 0 8px 0;
+    }
+
+    h2 {
+      font-size: 16pt;
+      text-transform: uppercase;
+    }
+
+    h3 {
+      font-size: 12pt;
+      text-transform: uppercase;
+      margin-top: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+
+    th, td {
+      border: 1px solid #222;
+      padding: 6px 8px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    .no-border th, .no-border td {
+      border: none;
+    }
+
+    .editable {
+      background: #d9ecff;
+    }
+
+    .small {
+      font-size: 9pt;
+    }
+
+    .section {
+      page-break-inside: avoid;
+    }
+
+    @media print {
+      body {
+        margin: 0;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      .editable {
+        background: transparent;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="margin-bottom: 12px; display:flex; gap:8px;">
+    <button onclick="history.back()">Voltar</button>
+    <button onclick="window.print()">Imprimir</button>
+  </div>
+
+  <div class="section">
+    <table class="no-border">
+      <tr>
+        <td style="width:100px; text-align:center;">
+          <img id="print-logo" src="" alt="Logo" style="max-width:90px; max-height:90px;">
+        </td>
+        <td style="text-align:center;">
+          <h2>Ordem de Produção</h2>
+          <h3 id="titulo-produto">Produto</h3>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>1 - Dados do Produto</h3>
+    <table>
+      <tr>
+        <th>Nº Desenvolvimento</th>
+        <td id="n_desenvolvimento"></td>
+        <th>Produto</th>
+        <td id="descricao"></td>
+      </tr>
+      <tr>
+        <th>Projeto Origem</th>
+        <td id="projeto_codigo"></td>
+        <th>Status do Projeto</th>
+        <td id="projeto_status"></td>
+      </tr>
+      <tr>
+        <th>Tipo</th>
+        <td id="tipo"></td>
+        <th>Natureza Física</th>
+        <td id="natureza_fisica"></td>
+      </tr>
+      <tr>
+        <th>Data Emissão</th>
+        <td id="data_emissao"></td>
+        <th>Unidade de Medida</th>
+        <td id="unid_medida"></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>2 - Formulação Original do Projeto</h3>
+    <table id="tabela-formulacao">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Matéria-Prima</th>
+          <th>Código</th>
+          <th>% (sistema)</th>
+          <th>Quantidade</th>
+          <th>Tempo de Agitação</th>
+          <th>Lote</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>3 - Página 1 - Líquido</h3>
+    <table>
+      <tr>
+        <th>Lote PA</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Qte a Produzir</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Código</th>
+        <td class="editable" contenteditable="true"></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>4 - Checklist - Tanque</h3>
+    <table>
+      <tr>
+        <th>Tanque</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Data</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Inspecionado Por</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Validado Por</th>
+        <td class="editable" contenteditable="true"></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>5 - Ordem de Envase - Máquina</h3>
+    <table>
+      <tr>
+        <th>Data separação</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Hora</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Resp.</th>
+        <td class="editable" contenteditable="true"></td>
+      </tr>
+      <tr>
+        <th>Data inicial de Envase</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Data Final de Envase</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Resp. Linha Envase</th>
+        <td class="editable" contenteditable="true"></td>
+      </tr>
+      <tr>
+        <th>Amostra Laboratório</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Resp.</th>
+        <td class="editable" contenteditable="true"></td>
+        <td colspan="2"></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>6 - Ordem de Produção Externa - Sais</h3>
+    <table>
+      <tr>
+        <th>Lote PA</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Código</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Separado Operador</th>
+        <td class="editable" contenteditable="true"></td>
+      </tr>
+      <tr>
+        <th>Hora Início</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Data</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Hora Final</th>
+        <td class="editable" contenteditable="true"></td>
+      </tr>
+      <tr>
+        <th>Data</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Conferido por</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Nome/resp (laboratório)</th>
+        <td class="editable" contenteditable="true"></td>
+      </tr>
+      <tr>
+        <th>Volumes das Embalagens</th>
+        <td colspan="5" class="editable" contenteditable="true">12x1 kg, 4x5kg, 1x10kg e 1x25kg</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>7 - Ordem de Serviço</h3>
+    <table>
+      <tr>
+        <th>Lote PA</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Data Separação</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Hora</th>
+        <td class="editable" contenteditable="true"></td>
+      </tr>
+      <tr>
+        <th>Resp</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Data Inicial de Envase</th>
+        <td class="editable" contenteditable="true"></td>
+        <th>Data Final de Envase</th>
+        <td class="editable" contenteditable="true"></td>
+      </tr>
+      <tr>
+        <th>Resp Linha Envase</th>
+        <td class="editable" contenteditable="true"></td>
+        <td colspan="4"></td>
+      </tr>
+    </table>
+  </div>
+
+  <script src="/assets/vendor/jquery-3.7.1.min.js"></script>
+  <script src="/assets/js/config.js"></script>
+  <script src="/assets/js/recursos.js"></script>
+  <script>
+    $(async function () {
+      const params = getAllUrlParams();
+      if (!params.id) {
+        showToast('Produto não informado.', 'warning');
+        return;
+      }
+
+      try {
+        const response = await req_GET(`${opt.urlProducaoProdutos}/${params.id}`);
+        if (!response.success) {
+          showToast(response.message || 'Erro ao carregar ordem de produção.', 'error');
+          return;
+        }
+
+        const produto = response.data || {};
+        const projeto = produto.projeto || {};
+        const formulacao = Array.isArray(produto.formulacao)
+          ? produto.formulacao
+          : (typeof produto.formulacao === 'string' ? JSON.parse(produto.formulacao || '[]') : []);
+
+        $('#titulo-produto').text(produto.descricao || 'Produto');
+        $('#n_desenvolvimento').text(produto.n_desenvolvimento || '');
+        $('#descricao').text(produto.descricao || '');
+        $('#projeto_codigo').text(projeto.codigo || produto.projeto_id || '');
+        $('#projeto_status').text(Array.isArray(projeto.status) && projeto.status.length > 0 ? projeto.status[0].status : (produto.projeto_status || ''));
+        $('#tipo').text(produto.tipo || '');
+        $('#natureza_fisica').text(produto.natureza_fisica || '');
+        $('#data_emissao').text(formatarDataPtBr(produto.data_emissao));
+        $('#unid_medida').text(produto.unid_medida || '');
+
+        const tbody = $('#tabela-formulacao tbody');
+        tbody.empty();
+
+        formulacao.forEach((item, index) => {
+          const linha = `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${item.desc_item || item.materia_prima || ''}</td>
+              <td>${item.cod_item || item.mp_codigo || ''}</td>
+              <td>${item.percentual ?? ''}</td>
+              <td>${item.qtd_formula ?? item.qtd_materia_prima ?? ''}</td>
+              <td>${item.tempo_agitacao || ''}</td>
+              <td>${item.lote || ''}</td>
+            </tr>
+          `;
+          tbody.append(linha);
+        });
+      } catch (error) {
+        showToast(`Erro ao montar ordem de produção: ${error.message || 'Erro desconhecido.'}`, 'error');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,538 @@
+<style>
+  .report-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 1rem 0;
+  }
+
+  .report-alert {
+    border-left: 4px solid #198754;
+  }
+
+  .formulacao-readonly td,
+  .formulacao-readonly th {
+    font-size: 0.83rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .label-blue {
+    color: #0d6efd;
+    font-weight: 600;
+  }
+</style>
+
+<h2>Regulatório — Produtos</h2>
+<p class="text-muted mb-0">
+  Produtos cadastrados no módulo regulatório.
+</p>
+
+<div class="report-toolbar">
+  <div class="d-flex gap-2 flex-wrap">
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnRecarregarRegProdutos">
+      <i class="fa-solid fa-rotate me-1"></i> Recarregar
+    </button>
+  </div>
+
+<div class="table-responsive">
+  <table id="tabela-reg-produtos" class="table table-striped table-bordered w-100">
+    <thead>
+      <tr>
+        <th>Nº Desenvolvimento</th>
+        <th>Produto</th>
+        <th>Projeto</th>
+        <th>Status Projeto</th>
+        <th>Status Produto</th>
+        <th>Tipo</th>
+        <th>Natureza Física</th>
+        <th>Data Emissão</th>
+        <th style="width:130px">Ações</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div class="modal fade" id="modalCriarProduto" tabindex="-1" role="dialog" aria-labelledby="modalCriarProdutoTitulo">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content" id="modalCriarProdutoContent">
+      <div class="modal-body py-5 text-center text-muted">Carregando formulário...</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========================= MODAL CADASTRO / EDIÇÃO ========================= -->
+<div class="modal fade" id="modalRegProduto" tabindex="-1" role="dialog"
+  aria-labelledby="modalRegProdutoTitulo">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalRegProdutoTitulo">Produto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <form id="formRegProduto" novalidate>
+        <div class="modal-body">
+
+          <input type="hidden" id="regProdutoId" name="id">
+          <input type="hidden" id="regProdutoProjetoId" name="projeto_id">
+
+          <!-- Tabs -->
+          <ul class="nav nav-tabs mb-3" id="tabsRegProduto" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="reg-tab-dados-btn"
+                data-bs-toggle="tab" data-bs-target="#reg-tab-dados"
+                type="button" role="tab" aria-controls="reg-tab-dados" aria-selected="true">
+                <i class="fa-solid fa-clipboard-list me-1"></i> Dados Gerais
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="reg-tab-formulacao-btn"
+                data-bs-toggle="tab" data-bs-target="#reg-tab-formulacao"
+                type="button" role="tab" aria-controls="reg-tab-formulacao" aria-selected="false">
+                <i class="fa-solid fa-flask me-1"></i> Formulação
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+
+            <!-- TAB: Dados Gerais -->
+            <div class="tab-pane fade show active" id="reg-tab-dados"
+              role="tabpanel" aria-labelledby="reg-tab-dados-btn">
+
+              <div class="row g-3">
+                <div class="col-md-3">
+                  <label for="regNDesenvolvimento" class="form-label label-blue">
+                    Nº Desenvolvimento <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="regNDesenvolvimento"
+                    name="n_desenvolvimento" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="regDescricao" class="form-label label-blue">
+                    Produto / Descrição <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="regDescricao"
+                    name="descricao" required>
+                </div>
+                <div class="col-md-3">
+                  <label for="regStatus" class="form-label label-blue">Status do Produto</label>
+                  <select class="form-select" id="regStatus" name="status"></select>
+                </div>
+              </div>
+
+              <div class="row g-3 mt-1">
+                <div class="col-md-4">
+                  <label for="regTipo" class="form-label label-blue">Tipo de Fertilizante</label>
+                  <select class="form-select" id="regTipo" name="tipo"></select>
+                </div>
+                <div class="col-md-4">
+                  <label for="regNatureza" class="form-label label-blue">Natureza Física</label>
+                  <select class="form-select" id="regNatureza" name="natureza_fisica"></select>
+                </div>
+                <div class="col-md-2">
+                  <label for="regUnidMedida" class="form-label label-blue">Unid. de Medida</label>
+                  <input type="text" class="form-control" id="regUnidMedida"
+                    name="unid_medida" placeholder="ex: L, kg">
+                </div>
+                <div class="col-md-2">
+                  <label for="regDataEmissao" class="form-label label-blue">Data Emissão</label>
+                  <input type="date" class="form-control" id="regDataEmissao"
+                    name="data_emissao">
+                </div>
+              </div>
+
+              <div class="row g-3 mt-1">
+                <div class="col-12">
+                  <label class="form-label label-blue">Modo de Aplicação</label>
+                  <div id="regAplicacaoDiv" class="d-flex flex-wrap gap-3 pt-1"></div>
+                </div>
+              </div>
+
+              <div class="row g-3 mt-2">
+                <div class="col-12">
+                  <label class="form-label text-muted small mb-0">Projeto de Origem</label>
+                  <p class="form-control-plaintext py-0 mt-1" id="regProjetoInfo">—</p>
+                </div>
+              </div>
+
+            </div>
+            <!-- /TAB Dados Gerais -->
+
+
+            <!-- TAB: Formulação -->
+            <div class="tab-pane fade" id="reg-tab-formulacao"
+              role="tabpanel" aria-labelledby="reg-tab-formulacao-btn">
+              <div class="alert alert-info py-2 mb-3" role="alert">
+                <i class="fa-solid fa-circle-info me-1"></i>
+                Formulação original do projeto de origem — somente leitura.
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm table-striped table-bordered formulacao-readonly">
+                  <thead class="table-light">
+                    <tr>
+                      <th>#</th>
+                      <th>Matéria-Prima</th>
+                      <th>Código</th>
+                      <th>% (sistema)</th>
+                      <th>Quantidade</th>
+                      <th>Tempo Agitação</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbRegFormulacao">
+                    <tr>
+                      <td colspan="6" class="text-center text-muted">Sem itens de formulação.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <!-- /TAB Formulação -->
+
+          </div><!-- /tab-content -->
+
+        </div><!-- /modal-body -->
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-floppy-disk me-1"></i> Salvar
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+<!-- /modal produto -->
+
+
+<!-- ========================= MODAL EXCLUSÃO ========================= -->
+<div class="modal fade" id="regConfirmacaoExclusaoModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar Exclusão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p>Deseja realmente excluir o produto <strong id="regNomeExclui"></strong>?</p>
+        <p class="text-danger small mb-0">Esta ação não pode ser desfeita.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" id="regConfirmarExclusao">
+          <i class="fa-solid fa-trash me-1"></i> Confirmar Exclusão
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  $(function () {
+
+    let data = [];
+    let table = null;
+    let currentProdutoId = null;
+
+    const carregarModalProduto = (produtoRef) => {
+      return new Promise((resolve, reject) => {
+        window.__regProjetoSelecionado = null;
+        window.__regProdutoSelecionado = produtoRef || null;
+        window.__regProdutoModalContext = 'edicao';
+        $('#modalCriarProdutoContent').load('/page/regulatorio.projetos.produto.modal.html', function (response, status) {
+          if (status === 'error') {
+            reject(new Error('Não foi possível carregar o formulário do produto.'));
+            return;
+          }
+          resolve();
+        });
+      });
+    };
+
+    // ─── Permissões ─────────────────────────────────────────────────────────────
+    const hasPerm = (key) => {
+      const p = getPermissoes();
+      return p && p[key] === true;
+    };
+
+    // ─── Status regulatório do produto ──────────────────────────────────────────
+    const statusProdutoOpts = (typeof statusProdutoRegulatorio !== 'undefined')
+      ? statusProdutoRegulatorio
+      : ['Solicitado', 'Em análise', 'Pendente documentação', 'Aprovado', 'Registrado', 'Suspenso', 'Cancelado'];
+
+    // ─── Preenche selects do modal ───────────────────────────────────────────────
+    function preencherSelects() {
+      $('#regStatus').html(
+        '<option value="">Selecione</option>' +
+        statusProdutoOpts.map(s => `<option value="${s}">${s}</option>`).join('')
+      );
+      $('#regTipo').html(
+        '<option value="">Selecione</option>' +
+        selectsProjeto.tipoFertilizante.map(t => `<option value="${t}">${t}</option>`).join('')
+      );
+      $('#regNatureza').html(
+        '<option value="">Selecione</option>' +
+        selectsProjeto.natureza.map(n => `<option value="${n}">${n}</option>`).join('')
+      );
+      $('#regAplicacaoDiv').html(
+        selectsProjeto.modoAplicacao.map(v => {
+          const sid = 'regApp_' + v.replace(/\s/g, '_');
+          return `<div class="form-check form-check-inline">
+            <input class="form-check-input reg-aplicacao-cb" type="checkbox"
+              id="${sid}" name="aplicacao[]" value="${v}">
+            <label class="form-check-label" for="${sid}">${v}</label>
+          </div>`;
+        }).join('')
+      );
+    }
+
+    // ─── Renderiza formulação ─────────────────────────────────────────────────
+    function renderFormulacao(formulacao) {
+      const tbody = $('#tbRegFormulacao');
+      tbody.empty();
+      if (!Array.isArray(formulacao) || formulacao.length === 0) {
+        tbody.html('<tr><td colspan="6" class="text-center text-muted">Sem itens de formulação.</td></tr>');
+        return;
+      }
+      formulacao.forEach((item, idx) => {
+        tbody.append(`<tr>
+          <td>${idx + 1}</td>
+          <td>${item.desc_item || item.materia_prima || '—'}</td>
+          <td>${item.cod_item || item.mp_codigo || '—'}</td>
+          <td>${item.percentual ?? '—'}</td>
+          <td>${item.qtd_formula ?? item.qtd_materia_prima ?? '—'}</td>
+          <td>${item.tempo_agitacao || '—'}</td>
+        </tr>`);
+      });
+    }
+
+    function resolverFormulacao(obj) {
+      if (!obj) return [];
+      if (Array.isArray(obj.formulacao)) return obj.formulacao;
+      if (typeof obj.formulacao === 'string') {
+        try { return JSON.parse(obj.formulacao); } catch (_) { return []; }
+      }
+      return [];
+    }
+
+    function infoProjetoTexto(row) {
+      if (row.projeto && (row.projeto.codigo || row.projeto.nome)) {
+        return [row.projeto.codigo || row.projeto_id, row.projeto.nome].filter(Boolean).join(' — ');
+      }
+      return row.projeto_id ? String(row.projeto_id) : '—';
+    }
+
+    // ─── Abre modal EDIÇÃO ───────────────────────────────────────────────────────
+    function abrirModalEdicao(row) {
+      currentProdutoId = row.id;
+      preencherSelects();
+
+      $('#modalRegProdutoTitulo').text('Editar Produto');
+      $('#regProdutoId').val(row.id);
+      $('#regProdutoProjetoId').val(row.projeto_id || '');
+      $('#regNDesenvolvimento').val(row.n_desenvolvimento || '');
+      $('#regDescricao').val(row.descricao || '');
+      $('#regStatus').val(row.status || '');
+      $('#regTipo').val(row.tipo || '');
+      $('#regNatureza').val(row.natureza_fisica || '');
+      $('#regUnidMedida').val(row.unid_medida || '');
+      $('#regDataEmissao').val(row.data_emissao ? String(row.data_emissao).substring(0, 10) : '');
+
+      $('.reg-aplicacao-cb').prop('checked', false);
+      const aplicacaoArr = Array.isArray(row.aplicacao) ? row.aplicacao : [];
+      aplicacaoArr.forEach(v => $(`.reg-aplicacao-cb[value="${v}"]`).prop('checked', true));
+
+      $('#regProjetoInfo').text(infoProjetoTexto(row));
+      renderFormulacao(resolverFormulacao(row));
+
+      const tabEl = document.getElementById('reg-tab-dados-btn');
+      if (tabEl) bootstrap.Tab.getOrCreateInstance(tabEl).show();
+      $('#modalRegProduto').modal('show');
+    }
+
+    // ─── Carrega tabela ──────────────────────────────────────────────────────────
+    const carregarRelatorio = async () => {
+      try {
+        const response = await req_GET(opt.urlRegulacaoProdutos);
+        if (!response.success) {
+          showToast(response.message || 'Erro ao carregar produtos.', 'error');
+          return;
+        }
+
+        data = response.data || [];
+
+        if (table) {
+          table.clear().rows.add(data).draw();
+          return;
+        }
+
+        table = createStandardDataTable('#tabela-reg-produtos', {
+          data,
+          order: [],
+          language: getStandardDataTableLanguage({
+            emptyTable: 'Nenhum produto regulatório encontrado.'
+          }),
+          columns: [
+            { title: 'Nº Desenvolvimento', data: 'n_desenvolvimento' },
+            { title: 'Produto', data: 'descricao' },
+            {
+              title: 'Projeto',
+              data: 'projeto_id',
+              render: function (value, type, row) {
+                if (type !== 'display') return value || '';
+                return row.projeto ? (row.projeto.codigo || value) : (value || '—');
+              }
+            },
+            {
+              title: 'Status Projeto',
+              data: 'projeto_status',
+              render: function (value, type) {
+                if (type !== 'display') return value || '';
+                if (!value) return '—';
+                const cor = value === 'Liberado' ? 'success' : 'secondary';
+                return `<span class="badge text-bg-${cor}">${value}</span>`;
+              }
+            },
+            {
+              title: 'Status Produto',
+              data: null,
+              orderable: false,
+              render: function (value, type, row) {
+                if (type !== 'display') return row.status || '';
+                if (!row.status) return '—';
+                const cor = row.status === 'Aprovado' || row.status === 'Registrado' ? 'success' : 'secondary';
+                return `<span class="badge text-bg-${cor}">${row.status}</span>`;
+              }
+            },
+            { title: 'Tipo', data: 'tipo' },
+            { title: 'Natureza Física', data: 'natureza_fisica' },
+            {
+              title: 'Data Emissão',
+              data: 'data_emissao',
+              render: function (value) {
+                return formatarDataPtBr(value);
+              }
+            },
+            {
+              title: 'Ações',
+              data: null,
+              orderable: false,
+              render: function (value, type, row) {
+                const btnEditar = `<button class="btn btn-outline-primary btn-sm me-1 reg-btn-editar"
+                      data-id="${row.id}" title="Editar produto">
+                      <i class="fa-solid fa-pen-to-square"></i></button>`;
+
+                const btnImprimir = `<a class="btn btn-outline-secondary btn-sm me-1"
+                  href="/page/regulatorio.produto.impressao.html?id=${row.id}"
+                  title="Imprimir">
+                  <i class="fa-solid fa-print"></i></a>`;
+
+                const btnExcluir = hasPerm('produtos:deletar')
+                  ? `<button class="btn btn-outline-danger btn-sm reg-btn-excluir"
+                      data-id="${row.id}" data-nome="${row.descricao || ''}" title="Excluir">
+                      <i class="fa-solid fa-trash"></i></button>`
+                  : '';
+
+                return `${btnEditar}${btnImprimir}${btnExcluir}`;
+              }
+            }
+          ]
+        });
+
+        setupDataTableColumnFilters({
+          tableSelector: '#tabela-reg-produtos',
+          dataTable: table,
+          excludeTitles: ['Ações']
+        });
+
+      } catch (error) {
+        showToast(`Erro ao carregar relatório: ${error.message || 'Erro desconhecido.'}`, 'error');
+      }
+    };
+
+    // ─── Editar ───────────────────────────────────────────────────────────────
+    $('#tabela-reg-produtos').on('click', '.reg-btn-editar', async function () {
+      const id = $(this).data('id');
+      await carregarModalProduto({ id });
+      $('#modalCriarProduto').modal('show');
+    });
+
+    // ─── Excluir: abre confirmação ────────────────────────────────────────────
+    $('#tabela-reg-produtos').on('click', '.reg-btn-excluir', function () {
+      currentProdutoId = $(this).data('id');
+      $('#regNomeExclui').text($(this).data('nome') || 'este produto');
+      $('#regConfirmacaoExclusaoModal').modal('show');
+    });
+
+    $('#regConfirmarExclusao').on('click', async function () {
+      if (!currentProdutoId) return;
+      try {
+        const result = await req_DELETE(`${opt.urlRegulacaoProdutos}/${currentProdutoId}`);
+        if (!result.success) {
+          showToast(result.message || 'Erro ao excluir produto.', 'error');
+          return;
+        }
+        $('#regConfirmacaoExclusaoModal').modal('hide');
+        showToast('Produto excluído com sucesso.', 'success');
+        data = data.filter(i => i.id !== currentProdutoId);
+        if (table) { table.clear().rows.add(data).draw(); }
+        currentProdutoId = null;
+      } catch (error) {
+        showToast(`Erro: ${error.message || 'Erro desconhecido.'}`, 'error');
+      }
+    });
+
+    // ─── Novo produto ─────────────────────────────────────────────────────────
+    // ─── Salvar (edição) ──────────────────────────────────────────────────────
+    $('#formRegProduto').on('submit', async function (e) {
+      e.preventDefault();
+      const formData = serializadoParaJSON($(this).serialize());
+      formData.aplicacao = $('.reg-aplicacao-cb:checked')
+        .map(function () { return $(this).val(); }).get();
+      delete formData['aplicacao[]'];
+
+      try {
+        const result = await req_PUT(`${opt.urlRegulacaoProdutos}/${currentProdutoId}`, formData);
+
+        if (!result.success) {
+          showToast(result.message || 'Erro ao salvar produto.', 'error');
+          return;
+        }
+
+        showToast('Produto atualizado com sucesso.', 'success');
+        $('#modalRegProduto').modal('hide');
+        if (table) { table.clear().destroy(); table = null; }
+        await carregarRelatorio();
+
+      } catch (error) {
+        showToast(`Erro: ${error.message || 'Erro desconhecido.'}`, 'error');
+      }
+    });
+
+    // ─── Limpa modal ao fechar ────────────────────────────────────────────────
+    $('#modalRegProduto').on('hidden.bs.modal', function () {
+      $('#formRegProduto')[0].reset();
+      $('#tbRegFormulacao').empty();
+      $('#regProjetoInfo').text('—');
+    });
+
+    // ─── Recarregar ───────────────────────────────────────────────────────────
+    $('#btnRecarregarRegProdutos').on('click', async function () {
+      if (table) { table.clear().destroy(); table = null; }
+      await carregarRelatorio();
+    });
+
+    // ─── Permissões: oculta botões ────────────────────────────────────────────
+    // ─── Init ─────────────────────────────────────────────────────────────────
+    carregarRelatorio();
+
+  });
+</script>

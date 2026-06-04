@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ordem Solicitação de Cadastro - Impressão</title>
+  <link rel="stylesheet" href="/assets/css/relatorio-impressao.css">
+  <style>
+    .header {
+      display: grid;
+      grid-template-columns: 1.8fr 1fr;
+      gap: 12px;
+      align-items: start;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--line);
+      margin-bottom: 14px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 15pt;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .header-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    #print-logo {
+      width: 90px;
+      max-height: 60px;
+      object-fit: contain;
+      display: none;
+      flex: 0 0 auto;
+    }
+
+    .header-title {
+      min-width: 0;
+    }
+
+    .header p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 10pt;
+    }
+
+    .meta-box {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+    }
+
+    .meta-line + .meta-line {
+      margin-top: 4px;
+    }
+
+    .meta-label,
+    .section-title {
+      font-weight: 700;
+    }
+
+    .section-title {
+      margin: 12px 0 6px;
+      font-size: 11pt;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 3px;
+    }
+
+    th {
+      width: 22%;
+    }
+
+    .two-col th {
+      width: 18%;
+    }
+
+    .summary th {
+      width: 18%;
+    }
+
+    .value {
+      font-weight: 600;
+      word-break: break-word;
+    }
+
+    .small {
+      font-size: 9pt;
+      color: var(--muted);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 9pt;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 12px;
+    }
+
+    .footer {
+      margin-top: 10px;
+      padding-top: 6px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 9pt;
+      color: var(--muted);
+    }
+
+    @media print {
+      .toolbar {
+        display: none;
+      }
+
+      .header {
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+      }
+
+      .section-title {
+        margin: 8px 0 4px;
+        font-size: 10pt;
+      }
+
+      table,
+      .section-title,
+      .footer,
+      .header {
+        page-break-inside: avoid;
+      }
+    }
+
+    @media screen and (max-width: 900px) {
+      .header {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="toolbar no-print">
+    <button type="button" onclick="window.history.back()">Voltar</button>
+    <button type="button" onclick="window.print()">Imprimir</button>
+  </div>
+
+  <main class="page">
+    <header class="header">
+      <div class="header-main">
+        <img id="print-logo" src="" alt="Logo">
+        <div class="header-title">
+          <h1>Ordem Solicitação de Cadastro</h1>
+        </div>
+      </div>
+      <div class="meta-box">
+        <div class="meta-line"><span class="meta-label">Produto:</span> <span id="metaProduto">—</span></div>
+        <div class="meta-line"><span class="meta-label">Nº Desenvolvimento:</span> <span id="metaDesenvolvimento">—</span></div>
+        <div class="meta-line"><span class="meta-label">Emissão:</span> <span id="metaEmissao">—</span></div>
+      </div>
+    </header>
+
+    <h2 class="section-title">1 - Informações Gerais</h2>
+    <table class="summary">
+      <tr>
+        <th>Produto</th>
+        <td class="value" id="produtoResumo">—</td>
+        <th>Projeto de origem</th>
+        <td class="value" id="projetoResumo">—</td>
+      </tr>
+      <tr>
+        <th>Tipo</th>
+        <td class="value" id="tipoResumo">—</td>
+        <th>Natureza física</th>
+        <td class="value" id="naturezaResumo">—</td>
+      </tr>
+    </table>
+
+    <h2 class="section-title">2 - Dados do Produto</h2>
+    <table class="two-col">
+      <tr>
+        <th>Descrição</th>
+        <td colspan="3" class="value" id="produtoDescricao">—</td>
+      </tr>
+      <tr>
+        <th>Projeto de origem</th>
+        <td class="value" id="produtoProjeto">—</td>
+        <th>Data emissão</th>
+        <td class="value" id="produtoEmissao">—</td>
+      </tr>
+      <tr>
+        <th>Tipo</th>
+        <td class="value" id="produtoTipo">—</td>
+        <th>Natureza física</th>
+        <td class="value" id="produtoNatureza">—</td>
+      </tr>
+      <tr>
+        <th>Unidade de medida</th>
+        <td class="value" id="produtoUnidade">—</td>
+        <th>Capacidade</th>
+        <td class="value" id="produtoCapacidade">—</td>
+      </tr>
+      <tr>
+        <th>Grupo</th>
+        <td class="value" id="produtoGrupo">—</td>
+        <th>Subgrupo</th>
+        <td class="value" id="produtoSubgrupo">—</td>
+      </tr>
+      <tr>
+        <th>Classe</th>
+        <td class="value" id="produtoClasse">—</td>
+        <th>Classificação fiscal</th>
+        <td class="value" id="produtoFiscal">—</td>
+      </tr>
+      <tr>
+        <th>Modelo / composição</th>
+        <td class="value" id="produtoModelo">—</td>
+        <th>Nº registro</th>
+        <td class="value" id="produtoRegistro">—</td>
+      </tr>
+      <tr>
+        <th>Validade</th>
+        <td colspan="3" class="value" id="produtoValidade">—</td>
+      </tr>
+      <tr>
+        <th>Peso líquido</th>
+        <td class="value" id="produtoPesoLiquido">—</td>
+        <th>Peso bruto</th>
+        <td class="value" id="produtoPesoBruto">—</td>
+      </tr>
+      <tr>
+        <th>Densidade</th>
+        <td class="value" id="produtoDensidade">—</td>
+        <th>Modo de aplicação</th>
+        <td id="produtoAplicacao">—</td>
+      </tr>
+    </table>
+
+    <h2 class="section-title">3 - Garantias</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Garantias</th>
+        </tr>
+      </thead>
+      <tbody id="tbGarantias"></tbody>
+    </table>
+
+    <h2 class="section-title">4 - Formulação</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 45px;">Nº</th>
+          <th style="width: 130px;">Qtd. fórmula</th>
+          <th style="width: 80px;">%</th>
+          <th style="width: 110px;">Cod. item</th>
+          <th>Descrição do item</th>
+        </tr>
+      </thead>
+      <tbody id="tbFormulacao"></tbody>
+    </table>
+
+    <h2 class="section-title">5 - Embalagem</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 45px;">Nº</th>
+          <th style="width: 180px;">Quantidade</th>
+          <th>Descrição</th>
+        </tr>
+      </thead>
+      <tbody id="tbEmbalagens"></tbody>
+    </table>
+
+    <footer class="footer">
+      <span id="rodapeProjeto">Projeto: —</span>
+      <span id="rodapeGerado">Gerado em —</span>
+    </footer>
+  </main>
+
+  <script src="/assets/vendor/jquery-3.7.1.min.js"></script>
+  <script src="/assets/js/config.js"></script>
+  <script src="/assets/js/recursos.js"></script>
+  <script>
+    $(async function () {
+      const sincronizarTokenDaAbaOrigem = () => {
+        try {
+          if (getSessionData('tk')) {
+            return;
+          }
+
+          const tokenOrigem = window.opener && window.opener !== window
+            ? window.opener.getSessionData && window.opener.getSessionData('tk')
+            : null;
+
+          if (tokenOrigem) {
+            setSessionData('tk', tokenOrigem);
+          }
+        } catch (_) {
+          return;
+        }
+      };
+
+      sincronizarTokenDaAbaOrigem();
+
+      const params = getAllUrlParams() || {};
+      const produtoId = params.id;
+
+      const textoOuTraco = (valor) => {
+        if (valor === null || valor === undefined) return '—';
+        const texto = String(valor).trim();
+        return texto ? texto : '—';
+      };
+
+      const numeroOuTraco = (valor, casas = 2) => {
+        if (valor === null || valor === undefined || valor === '') return '—';
+        const numero = Number(String(valor).replace(',', '.'));
+        return Number.isFinite(numero)
+          ? numero.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: casas })
+          : textoOuTraco(valor);
+      };
+
+      const resolverLista = (valor) => {
+        if (Array.isArray(valor)) return valor;
+        if (typeof valor === 'string') {
+          try {
+            const parsed = JSON.parse(valor);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch (_) {
+            return valor.split(',').map(item => item.trim()).filter(Boolean);
+          }
+        }
+        return [];
+      };
+
+      const normalizarChave = (valor) => removeAcento(String(valor || '').trim().toLowerCase());
+
+      const renderAplicacao = (lista) => {
+        const valores = resolverLista(lista);
+        const $container = $('#produtoAplicacao');
+        $container.empty();
+        if (valores.length === 0) {
+          $container.text('—');
+          return;
+        }
+        const $wrap = $('<div class="chips"></div>');
+        valores.forEach((item) => {
+          $wrap.append(`<span class="chip">${textoOuTraco(item)}</span>`);
+        });
+        $container.append($wrap);
+      };
+
+      const renderFormulacao = (formulacao) => {
+        const lista = resolverLista(formulacao);
+        const $tbody = $('#tbFormulacao');
+        $tbody.empty();
+        if (lista.length === 0) {
+          $tbody.html('<tr><td colspan="5" class="empty">Sem itens de formulação.</td></tr>');
+          return lista;
+        }
+        lista.forEach((item, index) => {
+          $tbody.append(`
+            <tr>
+              <td style="text-align:center;">${index + 1}</td>
+              <td style="text-align:right;">${numeroOuTraco(item.qtd_formula ?? item.quantidade, 4)}</td>
+              <td style="text-align:right;">${numeroOuTraco(item.percentual, 4)}</td>
+              <td>${textoOuTraco(item.cod_item || item.mp_codigo)}</td>
+              <td>${textoOuTraco(item.desc_item || item.materia_prima || item.nome)}</td>
+            </tr>`);
+        });
+        return lista;
+      };
+
+      const garantiaVisivel = (item) => {
+        const flag = item?.visivel ?? item?.garantia_Visivel ?? item?.visualizar;
+        if (flag === undefined || flag === null || flag === '') return true;
+        return String(flag) !== '0' && String(flag).toLowerCase() !== 'false';
+      };
+
+      const renderGarantias = (garantias) => {
+        const lista = resolverLista(garantias).filter((item) => garantiaVisivel(item));
+        const $tbody = $('#tbGarantias');
+        $tbody.empty();
+        if (lista.length === 0) {
+          $tbody.html('<tr><td class="empty">Sem garantias visíveis para impressão.</td></tr>');
+          return;
+        }
+
+        const formatarPercentualGarantia = (valor) => {
+          if (valor === null || valor === undefined || valor === '') return null;
+          const numero = Number(String(valor).replace(',', '.'));
+          return Number.isFinite(numero) ? `${numero.toFixed(4)}%` : null;
+        };
+
+        const textoGarantias = lista
+          .map((item) => {
+            const rotulo = textoOuTraco(item.formula || item.nome || item.nutriente);
+            const percentual = formatarPercentualGarantia(item.percentual);
+            if (rotulo === '—' || !percentual) return null;
+            return `<strong>${rotulo}</strong> - ${percentual} | `;
+          })
+          .filter(Boolean)
+          .join(' ');
+
+        $tbody.html(`<tr><td>${textoGarantias || 'Sem garantias visíveis para impressão.'}</td></tr>`);
+      };
+
+      const renderEmbalagens = (embalagens) => {
+        const lista = resolverLista(embalagens);
+        const $tbody = $('#tbEmbalagens');
+        $tbody.empty();
+        if (lista.length === 0) {
+          $tbody.html('<tr><td colspan="3" class="empty">Sem embalagens cadastradas.</td></tr>');
+          return;
+        }
+        lista.forEach((item, index) => {
+          $tbody.append(`
+            <tr>
+              <td style="text-align:center;">${index + 1}</td>
+              <td>${textoOuTraco(item.quantidade)}</td>
+              <td>${textoOuTraco(item.descricao)}</td>
+            </tr>`);
+        });
+      };
+
+      const mostrarErro = (mensagem) => {
+        $('.page').html(`<div style="border:1px solid #000;padding:16px;">${mensagem}</div>`);
+      };
+
+      const preencherResumo = (produto, projeto) => {
+        $('#produtoResumo').text(textoOuTraco(produto.descricao || produto.nome));
+        $('#projetoResumo').text(projeto ? [projeto.codigo, projeto.nome].filter(Boolean).join(' — ') : textoOuTraco(produto.projeto_id));
+        $('#tipoResumo').text(textoOuTraco(produto.tipo));
+        $('#naturezaResumo').text(textoOuTraco(produto.natureza_fisica));
+      };
+
+      const carregarLogo = async () => {
+        try {
+          const logoCfg = await getConfig('print-logo');
+          const logoValor = logoCfg && typeof logoCfg === 'object' ? logoCfg.value : null;
+          if (logoValor) {
+            $('#print-logo').attr('src', logoValor).show();
+          }
+        } catch (_) {
+          return;
+        }
+      };
+
+      await carregarLogo();
+
+      if (!produtoId) {
+        mostrarErro('Produto não informado para impressão.');
+        return;
+      }
+
+      try {
+        const produtoResp = await req_GET(`${opt.urlRegulacaoProdutos}/${produtoId}`);
+        if (!produtoResp.success || !produtoResp.data) {
+          mostrarErro(produtoResp.message || 'Não foi possível carregar o produto.');
+          return;
+        }
+
+        const produto = produtoResp.data;
+        let projeto = produto.projeto || null;
+
+        if (!projeto && produto.projeto_id) {
+          const projetoResp = await req_GET(`${opt.urlProjeto}/${produto.projeto_id}`);
+          if (projetoResp.success && projetoResp.data) {
+            projeto = projetoResp.data;
+          }
+        }
+
+        const formulacao = renderFormulacao(produto.formulacao || produto.formulacoes || projeto?.formulacao || []);
+        let garantias = resolverLista(produto.garantias);
+        if (garantias.length === 0) {
+          const idsFormula = [...new Set(formulacao
+            .map(item => item?.materia_prima_id || item?.materiaPrimaId || item?.mp_id || item?.id_materia_prima)
+            .filter(Boolean)
+            .map(String))];
+
+          if (idsFormula.length > 0) {
+            const respostas = await Promise.all(idsFormula.map(async (id) => {
+              try {
+                const response = await req_GET(`${opt.urlGarantiaMateriaPrima}/${id}`);
+                return response.success && Array.isArray(response.data) ? response.data : [];
+              } catch (_) {
+                return [];
+              }
+            }));
+
+            const unicos = new Map();
+            respostas.flat().forEach((item) => {
+              const garantia = {
+                nome: item.nutriente_Nome || item.nome || '',
+                formula: item.nutriente_Formula || item.formula || '',
+                percentual: item.garantia_Percentual ?? item.percentual ?? null,
+                visivel: item.garantia_Visivel ?? item.visivel ?? 1
+              };
+              const chave = `${normalizarChave(garantia.formula)}|${normalizarChave(garantia.nome)}`;
+              if (!unicos.has(chave)) {
+                unicos.set(chave, garantia);
+              }
+            });
+            garantias = Array.from(unicos.values());
+          }
+        }
+
+        renderGarantias(garantias);
+        renderEmbalagens(produto.embalagens);
+
+        $('#metaProduto').text(textoOuTraco(produto.descricao || produto.nome));
+        $('#metaDesenvolvimento').text(textoOuTraco(produto.n_desenvolvimento || projeto?.codigo));
+        $('#metaEmissao').text(formatarDataPtBr(produto.data_emissao));
+
+        $('#produtoDescricao').text(textoOuTraco(produto.descricao || produto.nome));
+        $('#produtoProjeto').text(projeto ? [projeto.codigo, projeto.nome].filter(Boolean).join(' — ') : textoOuTraco(produto.projeto_id));
+        $('#produtoTipo').text(textoOuTraco(produto.tipo));
+        $('#produtoNatureza').text(textoOuTraco(produto.natureza_fisica));
+        $('#produtoUnidade').text(textoOuTraco(produto.unid_medida));
+        $('#produtoCapacidade').text(numeroOuTraco(produto.capacidade, 4));
+        $('#produtoGrupo').text(textoOuTraco(produto.grupo));
+        $('#produtoSubgrupo').text(textoOuTraco(produto.subgrupo));
+        $('#produtoClasse').text(textoOuTraco(produto.classe));
+        $('#produtoFiscal').text(textoOuTraco(produto.classif_fiscal));
+        $('#produtoModelo').text(textoOuTraco(produto.modelo));
+        $('#produtoRegistro').text(textoOuTraco(produto.n_registro));
+        $('#produtoValidade').text(textoOuTraco(produto.validade));
+        $('#produtoEmissao').text(formatarDataPtBr(produto.data_emissao));
+        $('#produtoPesoLiquido').text(numeroOuTraco(produto.peso_liquido, 4));
+        $('#produtoPesoBruto').text(numeroOuTraco(produto.peso_bruto, 4));
+        $('#produtoDensidade').text(numeroOuTraco(produto.densidade, 4));
+        renderAplicacao(produto.aplicacao);
+        preencherResumo(produto, projeto);
+
+        $('#rodapeProjeto').text(projeto ? `Projeto: ${[projeto.codigo, projeto.nome].filter(Boolean).join(' — ')}` : `Projeto: ${textoOuTraco(produto.projeto_id)}`);
+        $('#rodapeGerado').text(`Gerado em ${new Date().toLocaleString('pt-BR')}`);
+      } catch (error) {
+        mostrarErro(error.message || 'Erro inesperado ao gerar o documento.');
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1215,7 +1215,7 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
 
                 try {
 
-                    table = $(SELECTORS.tabelaPerfis).DataTable({
+                    table = createStandardDataTable(SELECTORS.tabelaPerfis, {
                         data: data,
                         order: [[3, 'desc']],
                         columns: [
@@ -1270,64 +1270,30 @@ VERSION: 3.0.0 - 100% DOM manipulation, zero template strings
                             { targets: 2, autoWidth: true }
                         ],
                         searching: true,
-                        language: {
-                            "sEmptyTable": "Nenhum registro encontrado",
-                            "sInfo": "Mostrando de _START_ até _END_ de _TOTAL_ registros",
-                            "sInfoEmpty": "Mostrando 0 até 0 de 0 registros",
-                            "sInfoFiltered": "(Filtrados de _MAX_ registros)",
-                            "sInfoPostFix": "",
-                            "sInfoThousands": ".",
-                            "sLengthMenu": "_MENU_ resultados por página",
-                            "sLoadingRecords": "Carregando...",
-                            "sProcessing": "Processando...",
-                            "sZeroRecords": "Nenhum registro encontrado",
-                            "sSearch": "Pesquisar",
-                            "oPaginate": {
-                                "sNext": "Próximo",
-                                "sPrevious": "Anterior",
-                                "sFirst": "Primeiro",
-                                "sLast": "Último"
-                            },
-                            "oAria": {
-                                "sSortAscending": ": Ordenar colunas de forma ascendente",
-                                "sSortDescending": ": Ordenar colunas de forma descendente"
-                            },
-                            "select": {
-                                "rows": {
-                                    "_": "Selecionado %d linhas",
-                                    "0": "Nenhuma linha selecionada",
-                                    "1": "Selecionado 1 linha"
+                        language: getStandardDataTableLanguage({
+                            select: {
+                                rows: {
+                                    _: "Selecionado %d linhas",
+                                    0: "Nenhuma linha selecionada",
+                                    1: "Selecionado 1 linha"
                                 }
                             }
-                        }
+                        })
                     });
                 } catch (dtError) {
                     showToast('Erro ao criar tabela: ' + dtError.message, 'error');
                     throw dtError;
                 }
 
-                // Adiciona campos de pesquisa em cada cabeçalho de coluna
                 try {
-                    $(`${SELECTORS.tabelaPerfis} thead th`).each(function () {
-                        let title = $(this).text();
-                        if (title !== "Ações") {
-                            // Usar jQuery para criar o input de forma segura
-                            const input = $('<input>')
-                                .attr('type', 'text')
-                                .addClass('form-control form-control-sm')
-                                .attr('placeholder', title);
-                            $(this).html(input);
-                        }
+                    setupDataTableColumnFilters({
+                        tableSelector: SELECTORS.tabelaPerfis,
+                        dataTable: table,
+                        excludeTitles: ['Ações']
                     });
                 } catch (searchError) {
                     console.error('[DEBUG 23] Erro ao adicionar campos de pesquisa:', searchError);
                 }
-
-                // Adiciona evento de pesquisa para cada campo
-                    $(`${SELECTORS.tabelaPerfis} thead th input`).on('keyup', function () {
-                    let columnIndex = $(this).closest('th').index();
-                    table.column(columnIndex).search(this.value).draw();
-                });
                 // console.log('='.repeat(80));
 
 

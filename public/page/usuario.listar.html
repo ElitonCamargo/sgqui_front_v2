@@ -163,7 +163,7 @@
                 data = usuariosComPerfis;
 
                 // INICIA DATATABLE
-                table = $('#tabela-usuario').DataTable({
+                table = createStandardDataTable('#tabela-usuario', {
                     data: data,
                     order: [[5, 'desc']],
                     columns: [
@@ -217,18 +217,10 @@
 
 
 
-                // Adiciona campos de pesquisa em cada cabeçalho de coluna
-                $('#tabela-usuario thead th').each(function () {
-                    let title = $(this).text();
-                    if (title !== "Ações" && title !== "Avatar") {
-                        $(this).html(`<input type="text" class="form-control form-control-sm" placeholder="${title} "/>`);
-                    }
-                });
-
-                // Adiciona um evento de pesquisa para cada campo de entrada de texto nas colunas
-                $('#tabela-usuario thead th input').on('keyup', function () {
-                    let columnIndex = $(this).closest('th').index(); // Obtém o índice da coluna
-                    table.column(columnIndex).search(this.value).draw();
+                setupDataTableColumnFilters({
+                    tableSelector: '#tabela-usuario',
+                    dataTable: table,
+                    excludeTitles: ['Ações', 'Avatar']
                 });
 
 

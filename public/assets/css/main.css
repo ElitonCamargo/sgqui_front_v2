@@ -1,4 +1,10 @@
-body{background-color: #212529;}
+
+
+html,
+body {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
 
 /* login */
 .login {
@@ -166,12 +172,91 @@ footer {
 }
 
 /* Adiciona uma borda aos ícones dos cards */
-.cards-home {margin-top: 70px !important;}
+/* .cards-home {margin-top: 70px !important;} */
 .cards-home .card i {
     border: 2px solid #dee2e6;
     padding: 10px;
     border-radius: 50%;
     background-color: #f8f9fa;
+}
+
+.home-module-card {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 0.9rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.home-module-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.7rem 1.4rem rgba(0, 0, 0, 0.12) !important;
+}
+
+.home-module-card .card-body {
+    gap: 0.9rem;
+    padding: 1.2rem;
+}
+
+.home-module-header .card-title {
+    margin-top: 0.85rem;
+    margin-bottom: 0.45rem;
+}
+
+.home-module-header .card-text {
+    margin-bottom: 0;
+    color: var(--bs-secondary-color, #6c757d);
+    min-height: 3rem;
+}
+
+.home-submenu-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.home-submenu-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: var(--bs-body-color);
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.6rem;
+    padding: 0.5rem 0.65rem;
+    line-height: 1.25;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.home-submenu-link:hover,
+.home-submenu-link:focus {
+    border-color: var(--bs-primary);
+    background-color: rgba(var(--bs-primary-rgb), 0.08);
+}
+
+.home-submenu-link i {
+    font-size: 0.75rem;
+    border: 0;
+    padding: 0;
+    border-radius: 0;
+    background-color: transparent;
+}
+
+.home-module-action {
+    width: 100%;
+    border-radius: 0.6rem;
+}
+
+@media (max-width: 575.98px) {
+    .cards-home {
+        margin-top: 60px !important;
+    }
+
+    .home-module-card .card-body {
+        padding: 1rem;
+    }
 }
 
 .ui-autocomplete {

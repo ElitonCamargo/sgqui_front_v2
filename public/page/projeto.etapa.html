@@ -307,10 +307,10 @@
             opacity: 0.8,
             cursor: 'grabbing',
             update: function (event, ui) {
-                    if (!hasPerm('etapa_mp:alterarOrdem')) {
-                        showToast('Sem permissão para reordenar matérias primas.', 'warning');
-                        return;
-                    }
+                if (!hasPerm('etapa_mp:alterarOrdem')) {
+                    showToast('Sem permissão para reordenar matérias primas.', 'warning');
+                    return;
+                }
                 let nutrientes_por_etapa = [];
                 $(".nutrientes-por-etapa").each(function () {
                     let etapa = {
@@ -362,13 +362,15 @@
     //**  buscar os detalhes do projeto *********************************************************    
     const projeto_detalhado = (id_projeto = parseInt(getAllUrlParams()['id'])) => {
 
-        if (!hasPerm('projeto:consultarPorCodigo')) {
+        if (!hasPerm('projeto:consultarPorId')) {
             showToast('Sem permissão para consultar detalhes do projeto.', 'warning');
             return;
         }
 
         //Consultar projetos detalhados......
         req_GET(opt.urlProjeto + `/${id_projeto}`).then(result => {
+
+
 
             if (!result.success) {
                 // Tratamento de erro
@@ -381,7 +383,8 @@
 
 
             // *************** Detalhes do Projeto ****************************************************************
-            projeto = result.data[0];
+            projeto = result.data;
+
             $('#tituloProjeto').text(`Projeto: ${projeto.nome}`);
             $('#detalhesProjeto_codigo').text(projeto.codigo);
             $('#detalhesProjeto_nome').text(projeto.nome);
@@ -794,7 +797,7 @@
 
     //reseta background do input
     $(document).on('click', '.percentual, .tempo_agitacao, .lote', function () {
-        
+
         const input = $(this);
         input.css('background', '#3B3B3B')
 
@@ -849,7 +852,7 @@
 
             //deixa o input verde
             input.css('background', 'green');
-            
+
         }, 90);
 
 
@@ -1075,7 +1078,7 @@
         $('#cadastraEtapa_').addClass('d-none');
     }
 
-    if (!hasPerm('projeto:consultarPorCodigo')) {
+    if (!hasPerm('projeto:consultarPorId')) {
         $('.btn-imprimir').addClass('d-none');
     }
 

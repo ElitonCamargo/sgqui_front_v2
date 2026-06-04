@@ -205,7 +205,6 @@
 
 
     // Listar dados filtrados
-
     const getFiltro = () => {
       const filters = [];
       $('#filter-list .filter-badge').each(function () {
@@ -335,12 +334,12 @@
       }
 
       // INICIA DATATABLE
-      table = $('#tabela-projetos').DataTable({
+      table = createStandardDataTable('#tabela-projetos', {
         data: data,
         order: [[12, 'desc']],
-        language: {
+        language: getStandardDataTableLanguage({
           emptyTable: "Não foram encontrados registros"
-        },
+        }),
         columns: [
 
           {
@@ -389,7 +388,7 @@
               const botaoClonar = hasPerm('projeto:duplicar')
                 ? `<button class="btn btn-outline-secondary btn-sm btn-clonar" data-id="${row.id}" data-nome="${row.nome}" data-toggle="modal" data-target="#clonarProjeto" title="Clonar Projeto"><i class="fa-solid fa-clone"></i></button>`
                 : '';
-              const botaoEtapas = hasPerm('etapa:consultarPorProjeto')
+              const botaoEtapas = hasPerm('projeto:consultarPorCodigo') && hasPerm('etapa:consultarPorProjeto')
                 ? `<a href="/projeto/detalhado?id=${row.id}" class="btn btn-outline-secondary btn-sm btn-etapas" title="Etapas"><i class="fa-solid fa-tasks"></i></a>`
                 : '';
               const botaoImprimir = hasPerm('projeto:consultarDetalhado')
@@ -416,18 +415,10 @@
 
 
 
-      // Adiciona campos de pesquisa em cada cabeçalho de coluna
-      $('#tabela-projetos thead th').each(function () {
-        let title = $(this).text();
-        if (title !== "Ações") {
-          $(this).html(`<input type="text" class="form-control form-control-sm" placeholder="${title} "/>`);
-        }
-      });
-
-      // Adiciona um evento de pesquisa para cada campo de entrada de texto nas colunas
-      $('#tabela-projetos thead th input').on('keyup', function () {
-        let columnIndex = $(this).closest('th').index(); // Obtém o índice da coluna
-        table.column(columnIndex).search(this.value).draw();
+      setupDataTableColumnFilters({
+        tableSelector: '#tabela-projetos',
+        dataTable: table,
+        excludeTitles: ['Ações']
       });
 
       //Abre modal de visualização e edição de projetos
@@ -463,7 +454,7 @@
             selected = 'selected'
           }
           optionTipo += `<option value="${v}" ${selected}>${v}</option>`
-        })
+        });
         selectTipo += optionTipo;
         selectTipo += `</select>`;
 
@@ -712,7 +703,7 @@
       }).catch(error => {
         // Tratamento de erro de rede ou erro inesperado
         showToast(`Erro de comunicação: ${error.message || 'Erro desconhecido.'}`, 'error');
-      });
+      });//FIM GETAPI
 
     }
 

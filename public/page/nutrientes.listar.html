@@ -91,7 +91,7 @@
       }
 
       // INICIA DATATABLE
-      table = $('#tabela-nutrientes').DataTable({
+      table = createStandardDataTable('#tabela-nutrientes', {
         data: data,
         order: [[3, 'desc']],
         columns: [
@@ -127,18 +127,10 @@
 
 
 
-      // Adiciona campos de pesquisa em cada cabeçalho de coluna
-      $('#tabela-nutrientes thead th').each(function () {
-        let title = $(this).text();
-        if (title !== "Update" && title !== "Ações") {
-          $(this).html(`<input type="text" class="form-control form-control-sm" placeholder="${title} "/>`);
-        }
-      });
-
-      // Adiciona um evento de pesquisa para cada campo de entrada de texto nas colunas
-      $('#tabela-nutrientes thead th input').on('keyup', function () {
-        let columnIndex = $(this).closest('th').index(); // Obtém o índice da coluna
-        table.column(columnIndex).search(this.value).draw();
+      setupDataTableColumnFilters({
+        tableSelector: '#tabela-nutrientes',
+        dataTable: table,
+        excludeTitles: ['Ações', 'Update']
       });
 
       //Abre modal de visualização e edição de nutrientes

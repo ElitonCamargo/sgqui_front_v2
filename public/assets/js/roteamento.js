@@ -41,9 +41,24 @@ const rotas = [{
         'key':"projeto:consultar"
     },
     {
+        'path': '/regulatorio/projetos',
+        'component': '/page/regulatorio.projetos.relatorio.html',
+        'key': 'projeto:listarLiberados'
+    },
+    {
+        'path': '/regulatorio/produtos',
+        'component': '/page/regulatorio.produtos.relatorio.html',
+        'key': 'produtos:listar'
+    },
+    {
+        'path': '/producao/produtos',
+        'component': '/page/producao.produtos.relatorio.html',
+        'key': 'produtos:listar'
+    },
+    {
         'path': '/projeto/detalhado',
         'component': '/page/projeto.etapa.html',
-        'key':"projeto:consultarDetalhado"
+        'key':"projeto:consultarPorId"
 
     },
     {

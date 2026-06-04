@@ -1,0 +1,866 @@
+<style>
+  #modalCriarProduto .modal-body {
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+  }
+
+  #modalCriarProduto .modal-dialog {
+    max-width: 96vw;
+  }
+
+  #modalCriarProduto .tab-pane .table thead.table-light th {
+    background-color: rgba(var(--bs-secondary-rgb), 0.1);
+    color: var(--bs-body-color);
+    border-color: var(--bs-border-color);
+  }
+
+  html[data-bs-theme="dark"] #modalCriarProduto .tab-pane .table thead.table-light th {
+    background-color: rgba(var(--bs-secondary-rgb), 0.28);
+    color: var(--bs-emphasis-color);
+  }
+</style>
+
+<div class="modal-header">
+  <h5 class="modal-title" id="modalCriarProdutoTitulo">Novo Produto Regulatório</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+</div>
+
+<form id="formCriarProduto" novalidate>
+  <div class="modal-body">
+    <input type="hidden" id="criarProdId" name="id">
+    <input type="hidden" id="criarProdProjetoId" name="projeto_id">
+
+    <div class="alert alert-light border mb-3">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div>
+          <div class="fw-semibold">Ordem de Solicitação de Cadastro</div>
+          <div class="text-muted small">Dados do produto regulatório importado do projeto</div>
+        </div>
+        <span class="badge text-bg-secondary" id="criarProdutoCodigoTag">RASCUNHO</span>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-3">
+        <label for="criarDataEmissao" class="form-label">Data Emissão</label>
+        <input type="date" class="form-control" id="criarDataEmissao" name="data_emissao">
+      </div>
+      <div class="col-md-3">
+        <label for="criarUnidMedida" class="form-label">Unid. Medida</label>
+        <select class="form-select" id="criarUnidMedida" name="unid_medida">
+          <option value="L" selected>L</option>
+          <option value="Kg">Kg</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label for="criarCapacidade" class="form-label">Capacidade</label>
+        <input type="text" class="form-control" id="criarCapacidade" name="capacidade">
+      </div>
+      <div class="col-md-3">
+        <label for="criarStatus" class="form-label">Status</label>
+        <select class="form-select" id="criarStatus" name="status"></select>
+      </div>
+      <div class="col-md-6">
+        <label for="criarDescricao" class="form-label">Descrição</label>
+        <input type="text" class="form-control" id="criarDescricao" name="descricao">
+      </div>
+      <div class="col-md-3">
+        <label for="criarGrupo" class="form-label">Grupo</label>
+        <input type="text" class="form-control" id="criarGrupo" name="grupo">
+      </div>
+      <div class="col-md-3">
+        <label for="criarSubgrupo" class="form-label">Subgrupo</label>
+        <input type="text" class="form-control" id="criarSubgrupo" name="subgrupo">
+      </div>
+      <div class="col-md-4">
+        <label for="criarClassifFiscal" class="form-label">Classif. Fiscal</label>
+        <input type="text" class="form-control" id="criarClassifFiscal" name="classif_fiscal">
+      </div>
+      <div class="col-md-4">
+        <label for="criarClasse" class="form-label">Classe</label>
+        <input type="text" class="form-control" id="criarClasse" name="classe">
+      </div>
+      <div class="col-md-4">
+        <label for="criarTipo" class="form-label">Tipo</label>
+        <select class="form-select" id="criarTipo" name="tipo"></select>
+      </div>
+      <div class="col-md-4">
+        <label for="criarNatureza" class="form-label">Natureza Física</label>
+        <select class="form-select" id="criarNatureza" name="natureza_fisica"></select>
+      </div>
+      <div class="col-md-4">
+        <label for="criarNDesenvolvimento" class="form-label">Nº Desenvolvimento</label>
+        <input type="text" class="form-control" id="criarNDesenvolvimento" name="n_desenvolvimento">
+      </div>
+      <div class="col-md-4">
+        <label for="criarModelo" class="form-label">Modelo/Composição</label>
+        <input type="text" class="form-control" id="criarModelo" name="modelo">
+      </div>
+      <div class="col-md-3">
+        <label for="criarPesoLiquido" class="form-label">Peso Líquido</label>
+        <input type="text" class="form-control" id="criarPesoLiquido" name="peso_liquido">
+      </div>
+      <div class="col-md-3">
+        <label for="criarPesoBruto" class="form-label">Peso Bruto</label>
+        <input type="text" class="form-control" id="criarPesoBruto" name="peso_bruto">
+      </div>
+      <div class="col-md-3">
+        <label for="criarValidade" class="form-label">Prazo de Validade</label>
+        <input type="text" class="form-control" id="criarValidade" name="validade">
+      </div>
+      <div class="col-md-3">
+        <label for="criarNRegistro" class="form-label">Nº Registro</label>
+        <input type="text" class="form-control" id="criarNRegistro" name="n_registro">
+      </div>
+      <div class="col-md-3">
+        <label for="criarDensidade" class="form-label">Densidade</label>
+        <input type="text" class="form-control" id="criarDensidade" name="densidade">
+      </div>
+      <div class="col-md-9">
+        <label class="form-label">Modo de Aplicação</label>
+        <div id="criarAplicacaoDiv" class="d-flex flex-wrap gap-3 pt-1"></div>
+      </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-3" id="tabsCriarProduto" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="criar-tab-formulacao-btn"
+          data-bs-toggle="tab" data-bs-target="#criar-tab-formulacao"
+          type="button" role="tab" aria-selected="true">Formulação</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="criar-tab-garantias-btn"
+          data-bs-toggle="tab" data-bs-target="#criar-tab-garantias"
+          type="button" role="tab" aria-selected="false">Garantias</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="criar-tab-embalagens-btn"
+          data-bs-toggle="tab" data-bs-target="#criar-tab-embalagens"
+          type="button" role="tab" aria-selected="false">Embalagens</button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="criar-tab-formulacao" role="tabpanel" aria-labelledby="criar-tab-formulacao-btn">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+          <div class="text-muted small">Os itens importados do projeto ficam liberados para edição. Itens adicionais podem ser incluídos antes do cadastro.</div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnImportarFormulacaoProjeto">Importar do Projeto</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btnAdicionarItemFormulacao">Adicionar item</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped table-bordered formulacao-editable mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 42px;">#</th>
+                <th style="width: 140px;">QTD. FÓRMULA</th>
+                <th style="width: 100px;">%</th>
+                <th style="width: 120px;">COD. ITEM</th>
+                <th>DESCRIÇÃO DO ITEM</th>
+              </tr>
+            </thead>
+            <tbody id="tbCriarFormulacao">
+              <tr><td colspan="5" class="text-center text-muted">Sem itens de formulação.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="criar-tab-garantias" role="tabpanel" aria-labelledby="criar-tab-garantias-btn">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+          <div class="text-muted small">As garantias são importadas dos itens de matéria-prima relacionados à formulação e podem ser editadas antes do cadastro.</div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnRecalcularGarantias">Reimportar da formulação</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btnAdicionarGarantia">Adicionar garantia</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped table-bordered garantias-editavel mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 42px;">#</th>
+                <th>Nutriente</th>
+                <th style="width: 110px;">Fórmula</th>
+                <th style="width: 140px;">Percentual</th>
+                <th style="width: 100px;">Visível</th>
+                <th style="width: 70px;">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tbCriarGarantias">
+              <tr><td colspan="6" class="text-center text-muted">Sem garantias importadas.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="criar-tab-embalagens" role="tabpanel" aria-labelledby="criar-tab-embalagens-btn">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+          <div class="text-muted small">Informe as embalagens com quantidade e descrição do produto.</div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btnAdicionarEmbalagem">
+              <i class="fa-solid fa-plus me-1"></i>Adicionar embalagem
+            </button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped table-bordered mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 42px;">#</th>
+                <th style="width: 180px;">Quantidade</th>
+                <th>Descrição</th>
+                <th style="width: 70px;">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tbCriarEmbalagens">
+              <tr><td colspan="4" class="text-center text-muted">Sem embalagens cadastradas.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="form-text">Exemplo: 20L | BOMBONA CÓD 120/ TAMPA CÓD 3436/ RÓTULO F "CÓD A CRIAR"</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button type="submit" class="btn btn-primary">
+      <i class="fa-solid fa-floppy-disk me-1"></i> <span id="btnCriarProdutoTexto">Criar Produto</span>
+    </button>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+  </div>
+</form>
+
+<script>
+  $(function () {
+    const produtoInicial = window.__regProdutoSelecionado || null;
+    const contextoModal = window.__regProdutoModalContext || 'cadastro';
+    const produtoIdInicial = produtoInicial && produtoInicial.id ? produtoInicial.id : null;
+    let produtoCadastroAtual = null;
+    let projetoOrigemAtual = null;
+    const catalogoMateriasPrimas = new Map();
+    const materiasPrimasLista = [];
+
+    const hojeIso = () => new Date().toISOString().substring(0, 10);
+    const normalizarChave = (valor) => removeAcento(String(valor || '').trim().toLowerCase());
+
+    const toNumberOrNull = (valor) => {
+      if (valor === null || valor === undefined) return null;
+      const texto = String(valor).trim();
+      if (!texto) return null;
+      const numero = Number(texto.replace(',', '.'));
+      return Number.isFinite(numero) ? numero : null;
+    };
+
+    const normalizarUnidadeMedida = (valor) => {
+      const unidade = String(valor || '').trim().toLowerCase();
+      if (!unidade) return 'L';
+      if (unidade === 'l' || unidade === 'litro' || unidade === 'litros') return 'L';
+      if (unidade === 'kg' || unidade === 'quilo' || unidade === 'quilos' || unidade === 'kilo' || unidade === 'kilos') return 'Kg';
+      return valor;
+    };
+
+    const resolverStatusProduto = (origem) => {
+      const statusOrigem = origem?.status;
+
+      if (typeof statusOrigem === 'string' && statusOrigem.trim()) {
+        return statusOrigem.trim();
+      }
+
+      if (Array.isArray(statusOrigem) && statusOrigem.length > 0) {
+        const primeiro = statusOrigem[0];
+        if (typeof primeiro === 'string' && primeiro.trim()) return primeiro.trim();
+        if (primeiro && typeof primeiro === 'object') {
+          const valor = primeiro.status || primeiro.nome || primeiro.descricao;
+          if (typeof valor === 'string' && valor.trim()) return valor.trim();
+        }
+      }
+
+      if (statusOrigem && typeof statusOrigem === 'object') {
+        const valor = statusOrigem.status || statusOrigem.nome || statusOrigem.descricao;
+        if (typeof valor === 'string' && valor.trim()) return valor.trim();
+      }
+
+      return 'Rascunho';
+    };
+
+    const preencherSelectsCriar = async () => {
+      const $status = $('#criarStatus');
+      $status.empty();
+      (typeof statusProdutoRegulatorio !== 'undefined' ? statusProdutoRegulatorio : ['Rascunho']).forEach((status) => {
+        $status.append(`<option value="${status}">${status}</option>`);
+      });
+
+      const $tipo = $('#criarTipo');
+      $tipo.empty().append('<option value="">— Selecione —</option>');
+      (selectsProjeto.tipoFertilizante || []).forEach((tipo) => {
+        $tipo.append(`<option value="${tipo}">${tipo}</option>`);
+      });
+
+      const $natureza = $('#criarNatureza');
+      $natureza.empty().append('<option value="">— Selecione —</option>');
+      (selectsProjeto.natureza || []).forEach((natureza) => {
+        $natureza.append(`<option value="${natureza}">${natureza}</option>`);
+      });
+
+      const $aplicacao = $('#criarAplicacaoDiv');
+      $aplicacao.empty();
+      (selectsProjeto.modoAplicacao || []).forEach((item) => {
+        const id = `criarApl_${item.replace(/\s/g, '_')}`;
+        $aplicacao.append(`
+          <div class="form-check form-check-inline">
+            <input class="form-check-input criar-aplicacao-cb" type="checkbox" id="${id}" value="${item}">
+            <label class="form-check-label" for="${id}">${item}</label>
+          </div>`);
+      });
+
+      if (materiasPrimasLista.length === 0) {
+        const response = await req_GET(opt.urlMateriaPrima);
+        if (response.success && Array.isArray(response.data)) {
+          response.data.forEach((item) => {
+            const chaveCodigo = normalizarChave(item.codigo);
+            const chaveNome = normalizarChave(item.nome);
+            materiasPrimasLista.push(item);
+            catalogoMateriasPrimas.set(String(item.id), item);
+            if (chaveCodigo) catalogoMateriasPrimas.set(`codigo:${chaveCodigo}`, item);
+            if (chaveNome) catalogoMateriasPrimas.set(`nome:${chaveNome}`, item);
+          });
+        }
+      }
+    };
+
+    const encontrarMateriaPrima = (item) => {
+      const codigo = normalizarChave(item?.cod_item || item?.codigo || item?.mp_codigo);
+      const nome = normalizarChave(item?.desc_item || item?.materia_prima || item?.nome);
+      const id = item?.materia_prima_id || item?.materiaPrimaId || item?.mp_id || item?.id_materia_prima;
+
+      if (id && catalogoMateriasPrimas.has(String(id))) {
+        return catalogoMateriasPrimas.get(String(id));
+      }
+      if (codigo && catalogoMateriasPrimas.has(`codigo:${codigo}`)) {
+        return catalogoMateriasPrimas.get(`codigo:${codigo}`);
+      }
+      if (nome && catalogoMateriasPrimas.has(`nome:${nome}`)) {
+        return catalogoMateriasPrimas.get(`nome:${nome}`);
+      }
+
+      for (const materia of materiasPrimasLista) {
+        if (!materia || !materia.id) continue;
+        if (codigo && normalizarChave(materia.codigo) === codigo) return materia;
+        if (nome && normalizarChave(materia.nome) === nome) return materia;
+      }
+
+      return null;
+    };
+
+    const renderLinhaFormulacao = (item = {}) => {
+      const materia = encontrarMateriaPrima(item);
+      const materiaId = item.materia_prima_id || item.materiaPrimaId || item.mp_id || item.id_materia_prima || materia?.id || '';
+      return `
+        <tr>
+          <td class="text-center align-middle fw-semibold item-index"></td>
+          <td><input type="text" class="form-control form-control-sm criar-form-quantidade" value="${item.qtd_formula ?? item.quantidade ?? ''}"></td>
+          <td><input type="text" class="form-control form-control-sm criar-form-percentual" value="${item.percentual ?? ''}"></td>
+          <td>
+            <input type="hidden" class="criar-form-materia-id" value="${materiaId}">
+            <input type="text" class="form-control form-control-sm criar-form-codigo" value="${item.cod_item || materia?.codigo || ''}">
+          </td>
+          <td><input type="text" class="form-control form-control-sm criar-form-descricao" value="${item.desc_item || materia?.nome || ''}"></td>
+        </tr>`;
+    };
+
+    const renderFormulacaoCriar = (itens = []) => {
+      const $tbody = $('#tbCriarFormulacao');
+      const lista = Array.isArray(itens) ? itens : [];
+      const html = lista.length > 0 ? lista.map(item => renderLinhaFormulacao(item)).join('') : '';
+      $tbody.html(html || '<tr><td colspan="5" class="text-center text-muted">Sem itens de formulação.</td></tr>');
+      if (html) {
+        $tbody.find('.item-index').each(function (index) {
+          $(this).text(index + 1);
+        });
+      }
+    };
+
+    const adicionarLinhaFormulacao = (item = {}) => {
+      const $tbody = $('#tbCriarFormulacao');
+      if ($tbody.find('tr td.text-muted').length > 0) {
+        $tbody.empty();
+      }
+      $tbody.append(renderLinhaFormulacao(item));
+      $tbody.find('.item-index').each(function (index) {
+        $(this).text(index + 1);
+      });
+    };
+
+    const coletarFormulacaoCriar = () => {
+      const itens = [];
+      $('#tbCriarFormulacao tr').each(function () {
+        const $row = $(this);
+        const materiaIdInput = $row.find('.criar-form-materia-id');
+        if (materiaIdInput.length === 0) return;
+
+        let materiaId = materiaIdInput.val() || '';
+        const codigo = $row.find('.criar-form-codigo').val().trim();
+        const descricao = $row.find('.criar-form-descricao').val().trim();
+        const percentual = toNumberOrNull($row.find('.criar-form-percentual').val());
+        const quantidade = toNumberOrNull($row.find('.criar-form-quantidade').val());
+        const materia = encontrarMateriaPrima({
+          materia_prima_id: materiaId || null,
+          cod_item: codigo,
+          desc_item: descricao
+        });
+
+        if (!materiaId && materia?.id) {
+          materiaId = String(materia.id);
+          materiaIdInput.val(materiaId);
+        }
+
+        if (!materiaId && !codigo && !descricao && percentual === null && quantidade === null) {
+          return;
+        }
+
+        itens.push({
+          materia_prima_id: materiaId || null,
+          cod_item: codigo || materia?.codigo || '',
+          desc_item: descricao || materia?.nome || '',
+          percentual,
+          qtd_formula: quantidade
+        });
+      });
+      return itens;
+    };
+
+    const renderGarantiaLinha = (item = {}) => `
+      <tr>
+        <td class="text-center align-middle fw-semibold item-index"></td>
+        <td><input type="text" class="form-control form-control-sm criar-garantia-nome" value="${item.nome || item.nutriente || ''}"></td>
+        <td><input type="text" class="form-control form-control-sm criar-garantia-formula" value="${item.formula || ''}"></td>
+        <td><input type="text" class="form-control form-control-sm criar-garantia-percentual" value="${item.percentual ?? ''}"></td>
+        <td class="text-center"><input type="checkbox" class="form-check-input criar-garantia-visivel" ${item.visivel === 0 || item.visivel === '0' ? '' : 'checked'}></td>
+        <td class="text-center">
+          <button type="button" class="btn btn-outline-danger btn-sm btn-remover-garantia"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>`;
+
+    const renderEmbalagemLinha = (item = {}) => `
+      <tr>
+        <td class="text-center align-middle fw-semibold item-index"></td>
+        <td><input type="text" class="form-control form-control-sm criar-emb-quantidade" value="${item.quantidade || ''}" placeholder="Ex: 20L"></td>
+        <td><input type="text" class="form-control form-control-sm criar-emb-descricao" value="${item.descricao || ''}" placeholder="Descrição da embalagem"></td>
+        <td class="text-center">
+          <button type="button" class="btn btn-outline-danger btn-sm btn-remover-embalagem"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>`;
+
+    const renderEmbalagensCriar = (itens = []) => {
+      const $tbody = $('#tbCriarEmbalagens');
+      const lista = Array.isArray(itens) ? itens : [];
+      const html = lista.length > 0 ? lista.map(item => renderEmbalagemLinha(item)).join('') : '';
+      $tbody.html(html || '<tr><td colspan="4" class="text-center text-muted">Sem embalagens cadastradas.</td></tr>');
+      if (html) {
+        $tbody.find('.item-index').each(function (index) {
+          $(this).text(index + 1);
+        });
+      }
+    };
+
+    const adicionarLinhaEmbalagem = (item = {}) => {
+      const $tbody = $('#tbCriarEmbalagens');
+      if ($tbody.find('tr td.text-muted').length > 0) {
+        $tbody.empty();
+      }
+      $tbody.append(renderEmbalagemLinha(item));
+      $tbody.find('.item-index').each(function (index) {
+        $(this).text(index + 1);
+      });
+    };
+
+    const resolverEmbalagens = (origem) => {
+      if (Array.isArray(origem?.embalagens)) {
+        return origem.embalagens.map((item) => ({
+          quantidade: item?.quantidade || '',
+          descricao: item?.descricao || ''
+        }));
+      }
+
+      if (typeof origem?.embalagens === 'string') {
+        try {
+          const parsed = JSON.parse(origem.embalagens);
+          if (Array.isArray(parsed)) {
+            return parsed.map((item) => ({
+              quantidade: item?.quantidade || '',
+              descricao: item?.descricao || ''
+            }));
+          }
+        } catch (_) {
+          return [];
+        }
+      }
+
+      return [];
+    };
+
+    const coletarEmbalagensCriar = () => {
+      const itens = [];
+      $('#tbCriarEmbalagens tr').each(function () {
+        const $row = $(this);
+        const quantidadeInput = $row.find('.criar-emb-quantidade');
+        if (quantidadeInput.length === 0) return;
+
+        const quantidade = quantidadeInput.val().trim();
+        const descricao = $row.find('.criar-emb-descricao').val().trim();
+
+        if (!quantidade && !descricao) return;
+
+        itens.push({
+          quantidade,
+          descricao
+        });
+      });
+
+      return itens;
+    };
+
+    const renderGarantiasCriar = (itens = []) => {
+      const $tbody = $('#tbCriarGarantias');
+      const lista = Array.isArray(itens) ? itens : [];
+      const html = lista.length > 0 ? lista.map(item => renderGarantiaLinha(item)).join('') : '';
+      $tbody.html(html || '<tr><td colspan="6" class="text-center text-muted">Sem garantias importadas.</td></tr>');
+      if (html) {
+        $tbody.find('.item-index').each(function (index) {
+          $(this).text(index + 1);
+        });
+      }
+    };
+
+    const adicionarLinhaGarantia = (item = {}) => {
+      const $tbody = $('#tbCriarGarantias');
+      if ($tbody.find('tr td.text-muted').length > 0) {
+        $tbody.empty();
+      }
+      $tbody.append(renderGarantiaLinha(item));
+      $tbody.find('.item-index').each(function (index) {
+        $(this).text(index + 1);
+      });
+    };
+
+    const coletarGarantiasCriar = () => {
+      const itens = [];
+      $('#tbCriarGarantias tr').each(function () {
+        const $row = $(this);
+        const nome = $row.find('.criar-garantia-nome').val();
+        const formula = $row.find('.criar-garantia-formula').val();
+        const percentual = toNumberOrNull($row.find('.criar-garantia-percentual').val());
+        const visivel = $row.find('.criar-garantia-visivel').is(':checked') ? 1 : 0;
+
+        if (!nome && !formula && percentual === null) return;
+
+        itens.push({
+          nome: nome || '',
+          formula: formula || '',
+          percentual,
+          visivel
+        });
+      });
+      return itens;
+    };
+
+    const calcularQtdFormula = (densidade, percentual) => {
+      const densidadeNum = toNumberOrNull(densidade);
+      const percentualNum = toNumberOrNull(percentual);
+      if (densidadeNum === null || percentualNum === null) return null;
+      return (densidadeNum * percentualNum) / 100;
+    };
+
+    const resolverFormulacaoProjeto = (obj) => {
+      if (!obj) return [];
+
+      const etapas = Array.isArray(obj.etapas) ? obj.etapas : [];
+      if (etapas.length > 0) {
+        const itens = etapas.flatMap((etapa, etapaIndex) => {
+          const itensEtapa = Array.isArray(etapa.etapa_mp) ? etapa.etapa_mp : [];
+          return itensEtapa.map((item, itemIndex) => ({
+            etapa_id: etapa.id || null,
+            etapa_ordem: etapa.ordem ?? etapaIndex + 1,
+            ordem: item.ordem ?? itemIndex + 1,
+            materia_prima_id: item.mp || item.materia_prima_id || item.materiaPrimaId || item.id_materia_prima || null,
+            cod_item: item.mp_codigo || item.codigo || item.cod_item || '',
+            desc_item: item.materia_prima || item.mp_nome || item.nome || '',
+            percentual: item.percentual ?? null,
+            qtd_formula: item.qtd_formula ?? item.quantidade ?? calcularQtdFormula(obj.densidade, item.percentual),
+            tempo_agitacao: item.tempo_agitacao || null,
+            lote: item.lote || '',
+            observacao: item.observacao || ''
+          }));
+        });
+
+        return itens.sort((a, b) => {
+          const etapaA = Number(a.etapa_ordem || 0);
+          const etapaB = Number(b.etapa_ordem || 0);
+          if (etapaA !== etapaB) return etapaA - etapaB;
+          return Number(a.ordem || 0) - Number(b.ordem || 0);
+        });
+      }
+
+      if (Array.isArray(obj.formulacao)) return obj.formulacao;
+      if (Array.isArray(obj.formulacoes) && obj.formulacoes.length > 0) {
+        const ultima = obj.formulacoes[obj.formulacoes.length - 1];
+        return Array.isArray(ultima?.itens) ? ultima.itens : [];
+      }
+      if (typeof obj.formulacao === 'string') {
+        try {
+          const parsed = JSON.parse(obj.formulacao);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (_) {
+          return [];
+        }
+      }
+      return [];
+    };
+
+    const resolverGarantiasProjeto = async (origem, formulacaoItens = [], options = {}) => {
+      const preferirExistentes = options.preferirExistentes !== false;
+
+      if (preferirExistentes && Array.isArray(origem?.garantias) && origem.garantias.length > 0) {
+        return origem.garantias.map((item) => ({
+          nome: item.nome || item.nutriente || '',
+          formula: item.formula || '',
+          percentual: item.percentual ?? null,
+          visivel: item.visivel ?? 1
+        }));
+      }
+
+      const materiasRelacionadas = [];
+      const materiasUsadas = new Set();
+      formulacaoItens.forEach((item) => {
+        const materia = encontrarMateriaPrima(item);
+        if (materia && !materiasUsadas.has(String(materia.id))) {
+          materiasUsadas.add(String(materia.id));
+          materiasRelacionadas.push(materia);
+        }
+      });
+
+      if (materiasRelacionadas.length === 0) {
+        return [];
+      }
+
+      const resultados = await Promise.all(materiasRelacionadas.map(async (materia) => {
+        try {
+          const response = await req_GET(`${opt.urlGarantiaMateriaPrima}/${materia.id}`);
+          if (!response.success || !Array.isArray(response.data)) return [];
+          return response.data.map((garantia) => ({
+            nome: garantia.nutriente_Nome || garantia.nome || '',
+            formula: garantia.nutriente_Formula || garantia.formula || '',
+            percentual: garantia.garantia_Percentual ?? garantia.percentual ?? null,
+            visivel: garantia.garantia_Visivel ?? garantia.visivel ?? 1
+          }));
+        } catch (_) {
+          return [];
+        }
+      }));
+
+      const unique = new Map();
+      resultados.flat().forEach((item) => {
+        const key = `${normalizarChave(item.formula)}|${normalizarChave(item.nome)}`;
+        if (!unique.has(key)) unique.set(key, item);
+      });
+      return Array.from(unique.values());
+    };
+
+    const preencherCabecalhoCriar = (origem) => {
+      const statusProduto = resolverStatusProduto(origem);
+      $('#criarProdId').val(origem.id || '');
+      $('#criarProdProjetoId').val(origem.projeto_id || '');
+      $('#criarProdutoCodigoTag').text(origem.codigo || origem.n_desenvolvimento || 'RASCUNHO');
+      $('#criarNDesenvolvimento').val(origem.n_desenvolvimento || origem.codigo || '');
+      $('#criarDescricao').val(origem.nome || origem.descricao || '');
+      if ($('#criarStatus option').filter(function () { return $(this).val() === statusProduto; }).length === 0) {
+        $('#criarStatus').append(`<option value="${statusProduto}">${statusProduto}</option>`);
+      }
+      $('#criarStatus').val(statusProduto);
+      $('#criarTipo').val(origem.tipo || '');
+      $('#criarNatureza').val(origem.natureza_fisica || '');
+      $('#criarUnidMedida').val(normalizarUnidadeMedida(origem.unid_medida));
+      $('#criarCapacidade').val(origem.capacidade || '');
+      $('#criarGrupo').val(origem.grupo || '');
+      $('#criarSubgrupo').val(origem.subgrupo || '');
+      $('#criarClassifFiscal').val(origem.classif_fiscal || '');
+      $('#criarClasse').val(origem.classe || '');
+      $('#criarModelo').val(origem.modelo || '');
+      $('#criarPesoLiquido').val(origem.peso_liquido || '');
+      $('#criarPesoBruto').val(origem.peso_bruto || '');
+      $('#criarValidade').val(origem.validade || '');
+      $('#criarNRegistro').val(origem.n_registro || '');
+      $('#criarDensidade').val(origem.densidade || '');
+      $('#criarDataEmissao').val(origem.data_emissao ? String(origem.data_emissao).substring(0, 10) : hojeIso());
+
+      $('.criar-aplicacao-cb').prop('checked', false);
+      (Array.isArray(origem.aplicacao) ? origem.aplicacao : []).forEach((valor) => {
+        $(`.criar-aplicacao-cb[value="${valor}"]`).prop('checked', true);
+      });
+    };
+
+    const atualizarGarantiasDaFormula = async () => {
+      const formulacao = coletarFormulacaoCriar();
+      const garantias = await resolverGarantiasProjeto(produtoCadastroAtual || {}, formulacao, { preferirExistentes: false });
+      renderGarantiasCriar(garantias);
+    };
+
+    const carregarDadosIniciais = async () => {
+      if (!produtoIdInicial) {
+        showToast('Produto não informado para o formulário.', 'error');
+        return;
+      }
+
+      let origem = null;
+      const detProduto = await req_GET(`${opt.urlRegulacaoProdutos}/${produtoIdInicial}`);
+      if (!detProduto || !detProduto.success || !detProduto.data) {
+        showToast(detProduto?.message || 'Não foi possível carregar o produto.', 'error');
+        return;
+      }
+      origem = detProduto.data;
+
+      if (origem?.projeto) {
+        projetoOrigemAtual = origem.projeto;
+      } else {
+        projetoOrigemAtual = null;
+      }
+
+      produtoCadastroAtual = origem;
+      $('#modalCriarProdutoTitulo').text(contextoModal === 'edicao' ? 'Editar Produto Regulatório' : 'Cadastro de Produto Regulatório');
+      $('#btnCriarProdutoTexto').text('Salvar Produto');
+
+      const formulacao = resolverFormulacaoProjeto(origem);
+      preencherCabecalhoCriar(origem);
+      renderFormulacaoCriar(formulacao);
+      adicionarLinhaFormulacao();
+      const garantias = await resolverGarantiasProjeto(origem, formulacao);
+      renderGarantiasCriar(garantias);
+      renderEmbalagensCriar(resolverEmbalagens(origem));
+    };
+
+    $('#btnAdicionarItemFormulacao').on('click', function () {
+      adicionarLinhaFormulacao();
+    });
+
+    $('#btnImportarFormulacaoProjeto').on('click', async function () {
+      const origemImportacao = produtoCadastroAtual;
+      if (!origemImportacao) return;
+      renderFormulacaoCriar(resolverFormulacaoProjeto(origemImportacao));
+      adicionarLinhaFormulacao();
+      await atualizarGarantiasDaFormula();
+    });
+
+    $('#btnAdicionarGarantia').on('click', function () {
+      adicionarLinhaGarantia();
+    });
+
+    $('#btnAdicionarEmbalagem').on('click', function () {
+      adicionarLinhaEmbalagem();
+    });
+
+    $('#btnRecalcularGarantias').on('click', async function () {
+      await atualizarGarantiasDaFormula();
+    });
+
+    $('#tbCriarFormulacao').on('change blur', '.criar-form-codigo, .criar-form-descricao', function () {
+      const $row = $(this).closest('tr');
+      const materia = encontrarMateriaPrima({
+        cod_item: $row.find('.criar-form-codigo').val().trim(),
+        desc_item: $row.find('.criar-form-descricao').val().trim()
+      });
+      $row.find('.criar-form-materia-id').val(materia?.id ? String(materia.id) : '');
+      atualizarGarantiasDaFormula();
+    });
+
+    $('#tbCriarFormulacao').on('change blur', '.criar-form-percentual, .criar-form-quantidade', function () {
+      atualizarGarantiasDaFormula();
+    });
+
+    $('#tbCriarGarantias').on('click', '.btn-remover-garantia', function () {
+      $(this).closest('tr').remove();
+      $('#tbCriarGarantias .item-index').each(function (index) {
+        $(this).text(index + 1);
+      });
+      if ($('#tbCriarGarantias tr').length === 0) {
+        renderGarantiasCriar();
+      }
+    });
+
+    $('#tbCriarEmbalagens').on('click', '.btn-remover-embalagem', function () {
+      $(this).closest('tr').remove();
+      $('#tbCriarEmbalagens .item-index').each(function (index) {
+        $(this).text(index + 1);
+      });
+      if ($('#tbCriarEmbalagens tr').length === 0) {
+        renderEmbalagensCriar();
+      }
+    });
+
+    $('#formCriarProduto').on('submit', async function (e) {
+      e.preventDefault();
+
+      const payload = {
+        id: $('#criarProdId').val() || null,
+        projeto_id: $('#criarProdProjetoId').val(),
+        n_desenvolvimento: $('#criarNDesenvolvimento').val(),
+        descricao: $('#criarDescricao').val(),
+        data_emissao: $('#criarDataEmissao').val(),
+        unid_medida: $('#criarUnidMedida').val(),
+        capacidade: toNumberOrNull($('#criarCapacidade').val()),
+        grupo: $('#criarGrupo').val(),
+        subgrupo: $('#criarSubgrupo').val(),
+        classif_fiscal: $('#criarClassifFiscal').val(),
+        classe: $('#criarClasse').val(),
+        modelo: $('#criarModelo').val(),
+        peso_liquido: toNumberOrNull($('#criarPesoLiquido').val()),
+        peso_bruto: toNumberOrNull($('#criarPesoBruto').val()),
+        validade: $('#criarValidade').val(),
+        n_registro: $('#criarNRegistro').val(),
+        densidade: toNumberOrNull($('#criarDensidade').val()),
+        status: $('#criarStatus').val(),
+        tipo: $('#criarTipo').val(),
+        natureza_fisica: $('#criarNatureza').val(),
+        aplicacao: $('.criar-aplicacao-cb:checked').map(function () { return $(this).val(); }).get(),
+        formulacao: coletarFormulacaoCriar(),
+        garantias: coletarGarantiasCriar(),
+        embalagens: coletarEmbalagensCriar()
+      };
+
+      try {
+        if (!payload.id) {
+          showToast('Id do produto não informado para salvar.', 'error');
+          return;
+        }
+
+        const result = await req_PUT(`${opt.urlRegulacaoProdutos}/${payload.id}`, payload);
+        if (!result.success) {
+          showToast(result.message || 'Erro ao salvar produto.', 'error');
+          return;
+        }
+
+        showToast('Produto salvo com sucesso.', 'success');
+        $('#modalCriarProduto').modal('hide');
+        if (typeof window.regulacaoAtualizarTabelaProdutos === 'function') {
+          await window.regulacaoAtualizarTabelaProdutos();
+        }
+      } catch (error) {
+        showToast(`Erro: ${error.message || 'Erro desconhecido.'}`, 'error');
+      }
+    });
+
+    $('#modalCriarProduto').on('hidden.bs.modal', function () {
+      produtoCadastroAtual = null;
+      projetoOrigemAtual = null;
+      $('#modalCriarProdutoContent').empty();
+      window.__regProjetoSelecionado = null;
+      window.__regProdutoSelecionado = null;
+      window.__regProdutoModalContext = null;
+    });
+
+    (async () => {
+      await preencherSelectsCriar();
+      await carregarDadosIniciais();
+    })();
+  });
+</script>

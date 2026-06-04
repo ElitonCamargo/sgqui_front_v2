@@ -1,100 +1,104 @@
 {
     "menu": [
         {
-            "title": "Elementos",
-            "url": "/elemento/listar",
-            "icon": "fa-flask",
-            "text": "Gerencie os elementos do sistema com facilidade.",
-            "buttonText": "Ver Elementos",
-            "key": "elemento:consultar"
-        },
-        {
-            "title": "Nutrientes",
+            "title": "Formulação",
             "dropdown": [
-                
                 {
-                    "title": "Listar",
+                    "title": "Elementos",
+                    "url": "/elemento/listar",
+                    "key": "elemento:consultar"
+                },
+                {
+                    "title": "Nutrientes - Listar",
                     "url": "/nutrientes/listar",
                     "key": "nutriente:consultar"
                 },
                 {
-                    "title": "Cadastrar",
+                    "title": "Nutrientes - Cadastrar",
                     "url": "/nutrientes/cadastrar",
-                    "key":"nutriente:cadastrar"
-                }
-            ],
-            "icon": "fa-leaf",
-            "text": "Adicione e visualize nutrientes no sistema.",
-            "buttonText": "Ver Nutrientes",
-            "key": "nutriente:consultar"
-        },
-        {
-            "title": "Matéria Prima",
-            "dropdown": [
-                
-                {
-                    "title": "Listar",
-                    "url": "/materia_prima/listar",
-                    "key":"materia_prima:consultar"
+                    "key": "nutriente:cadastrar"
                 },
                 {
-                    "title": "Cadastrar",
+                    "title": "Matéria Prima - Listar",
+                    "url": "/materia_prima/listar",
+                    "key": "materia_prima:consultar"
+                },
+                {
+                    "title": "Matéria Prima - Cadastrar",
                     "url": "/materia_prima/cadastrar",
                     "key": "materia_prima:cadastrar"
-                }
-            ],
-            "icon": "fa-flask-vial",
-            "text": "Cadastre e gerencie a matéria prima utilizada.",
-            "buttonText": "Ver Matéria Prima",
-            "key": "materia_prima:consultar"
-        },
-        {
-            "title": "Projetos",
-            "dropdown": [
-                
+                },
                 {
-                    "title": "Listar",
+                    "title": "Projetos - Listar",
                     "url": "/projetos/listar",
                     "key": "projeto:consultar"
                 },
                 {
-                    "title": "Cadastrar",
+                    "title": "Projetos - Cadastrar",
                     "url": "/projeto/cadastrar",
                     "key": "projeto:cadastrar"
-                }
-            ],
-            "icon": "fa-gear",
-            "text": "Gerencie e visualize os projetos em andamento.",
-            "buttonText": "Ver Projetos",
-            "key": "projeto:consultar"
-        },
-        {
-            "title": "Configurações",
-            "dropdown": [
-                {
-                    "title": "Perfis de Usuários",
-                    "url": "/usuario/perfis",
-                    "key": "perfis:listar"
                 },
                 {
-                    "title": "Usuário Cadastrar",
-                    "url": "/usuario/cadastrar",
-                    "key": "usuario:cadastrar"
-                },
-                {
-                    "title": "Usuário Listar",
-                    "url": "/usuario/listar",
-                    "key": "usuario:consultar"
-                },
-                {
-                    "title": "Configurações Página de Impressão",
+                    "title": "Configuração Impressão de Projeto",
                     "url": "/configuracoes/configuracao-impressao",
                     "key": "config:consultar"
                 }
             ],
-            "icon": "fa-cogs",
-            "text": "Configurações",
-            "buttonText": "Configurar"
+            "icon": "fa-gear",
+            "text": "Módulo de formulação com elementos, nutrientes, matéria prima e projetos.",
+            "buttonText": "Ver Formulação"
+        },
+        {
+            "title": "Regulatório",
+            "dropdown": [
+                {
+                    "title": "Projetos Liberados",
+                    "url": "/regulatorio/projetos",
+                    "key": "projeto:listarLiberados"                },
+                {
+                    "title": "Produtos",
+                    "url": "/regulatorio/produtos",
+                    "key": "produtos:listar"                }
+            ],
+            "icon": "fa-scale-balanced",
+            "text": "Módulo regulatório preparado para receber novos botões.",
+            "buttonText": "Ver Regulatório"
+        },
+        {
+            "title": "Produção",
+            "dropdown": [
+                {
+                    "title": "Relatório de Produtos em Produção",
+                    "url": "/producao/produtos",
+                    "key": "produtos:listar"
+                }
+            ],
+            "icon": "fa-industry",
+            "text": "Módulo de produção preparado para receber novos botões.",
+            "buttonText": "Ver Produção"
+        },
+        {
+            "title": "Controle de Acesso",
+            "dropdown": [
+                {
+                    "title": "Usuários - Cadastrar",
+                    "url": "/usuario/cadastrar",
+                    "key": "usuario:cadastrar"
+                },
+                {
+                    "title": "Usuários - Listar",
+                    "url": "/usuario/listar",
+                    "key": "usuario:consultar"
+                },
+                {
+                    "title": "Perfis de Usuários",
+                    "url": "/usuario/perfis",
+                    "key": "perfis:listar"
+                }
+            ],
+            "icon": "fa-user-shield",
+            "text": "Gerencie usuários, perfis e permissões do sistema.",
+            "buttonText": "Ver Controle de Acesso"
         }
     ]
 }

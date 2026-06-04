@@ -1,0 +1,415 @@
+<style>
+  .report-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 1rem 0;
+  }
+
+  .report-alert {
+    border-left: 4px solid #198754;
+  }
+
+  .produto-cabecalho {
+    border: 2px solid #111;
+    background: #f5f6ec;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .produto-cabecalho-title {
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 1rem;
+    line-height: 1.1;
+  }
+
+  .produto-cabecalho-subtitle {
+    font-size: 0.8rem;
+    color: #555;
+  }
+
+  .produto-cabecalho-code {
+    border: 2px solid #111;
+    background: #fff;
+    min-width: 92px;
+    text-align: center;
+    font-weight: 700;
+    padding: 0.35rem 0.5rem;
+    margin-left: auto;
+  }
+
+  .produto-cabecalho-table,
+  .produto-cabecalho-table th,
+  .produto-cabecalho-table td {
+    border-color: #111 !important;
+  }
+
+  .produto-cabecalho-table th {
+    background: #e6e9d8;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+    width: 1%;
+  }
+
+  .produto-cabecalho-table td {
+    background: #fff;
+  }
+
+  .cabecalho-input {
+    border: 0;
+    border-bottom: 1px solid #7b7b7b;
+    border-radius: 0;
+    box-shadow: none !important;
+    min-height: 1.85rem;
+    padding: 0.2rem 0.35rem;
+    background: transparent;
+  }
+
+  .cabecalho-input:focus {
+    border-bottom-color: #0d6efd;
+  }
+
+  .cabecalho-readonly {
+    background: #d9ecff;
+  }
+
+  .formulacao-editable td,
+  .formulacao-editable th,
+  .garantias-editavel td,
+  .garantias-editavel th {
+    vertical-align: middle;
+    font-size: 0.85rem;
+  }
+
+  .formula-toolbar,
+  .garantia-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .produtos-existentes-list .list-group-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .produtos-existentes-meta {
+    min-width: 0;
+  }
+
+  .produtos-existentes-meta strong {
+    display: block;
+  }
+
+  .produtos-existentes-meta small {
+    color: #6c757d;
+    word-break: break-word;
+  }
+</style>
+
+<h2>Relatório de Projetos Liberados - Regulação</h2>
+<p class="text-muted mb-0">Somente projetos com status permitido para regulação aparecem nesta lista. Projetos bloqueados são excluídos.</p>
+
+
+<div class="report-toolbar">
+  <div>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnRecarregarRegulacao">
+      <i class="fa-solid fa-rotate me-1"></i> Recarregar
+    </button>
+  </div>
+  <div>
+    <span class="badge text-bg-success">Bloqueado não entra em regulação</span>
+  </div>
+</div>
+
+<table id="tabela-regulacao-projetos" class="table table-striped table-bordered w-100">
+  <thead>
+    <tr>
+      <th>Data Criação</th>
+      <th>Código</th>
+      <th>Nome</th>
+      <th>Cliente</th>
+      <th>Tipo</th>
+      <th>Natureza Física</th>
+      <th>Status</th>
+      <th>Pendente</th>
+      <th style="width: 180px;">Ações</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<!-- ========================= MODAL CRIAR PRODUTO ========================= -->
+<div class="modal fade" id="modalCriarProduto" tabindex="-1" role="dialog" aria-labelledby="modalCriarProdutoTitulo">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content" id="modalCriarProdutoContent">
+      <div class="modal-body py-5 text-center text-muted">Carregando formulário...</div>
+    </div>
+  </div>
+</div>
+<!-- /modal criar produto -->
+
+<div class="modal fade" id="modalProdutosExistentes" tabindex="-1" aria-labelledby="modalProdutosExistentesTitulo" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalProdutosExistentesTitulo">Produtos já cadastrados para este projeto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-2">Já existem produtos vinculados a este projeto. Você pode editar um existente ou criar um novo.</p>
+        <div class="list-group produtos-existentes-list" id="listaProdutosExistentes"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-primary" id="btnCriarNovoMesmoAssim">
+          <i class="fa-solid fa-plus me-1"></i>Criar Novo Produto
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(function () {
+    let data = [];
+    let table = null;
+    let projetoPendenteCriacaoProdutoId = null;
+
+    const getStatusAtual = (row) => {
+      return Array.isArray(row?.status) && row.status.length > 0 ? row.status[0].status : '';
+    };
+
+    const carregarRelatorio = async () => {
+      try {
+        const response = await req_GET(opt.urlRegulacaoProjeto);
+
+        if (!response.success) {
+          showToast(response.message || 'Erro ao carregar projetos liberados.', 'error');
+          return;
+        }
+
+        data = (response.data || []).filter((row) => {
+          const status = getStatusAtual(row);
+          return status !== 'Bloqueado' && statusRelatorioRegulacao.includes(status);
+        });
+
+        if (table) {
+          table.clear().rows.add(data).draw();
+          return;
+        }
+
+        table = createStandardDataTable('#tabela-regulacao-projetos', {
+          data,
+          // order: [[0, 'desc']],
+          language: getStandardDataTableLanguage({
+            emptyTable: 'Nenhum projeto liberado encontrado.'
+          }),
+          columns: [
+            {
+              title: 'Data Criação',
+              data: 'createdAt',
+              render: function (value) {
+                return formatarDataPtBr(value);
+              }
+            },
+            { title: 'Código', data: 'codigo' },
+            { title: 'Nome', data: 'nome' },
+            { title: 'Cliente', data: 'cliente' },
+            { title: 'Tipo', data: 'tipo' },
+            { title: 'Natureza Física', data: 'natureza_fisica' },
+            {
+              title: 'Status',
+              data: null,
+              render: function (value, type, row) {
+                return getStatusAtual(row);
+              }
+            },
+            {
+              title: 'Pendente',
+              data: 'pendente',
+              render: function (value) {
+                return String(value) === 'true' ? 'Sim' : 'Não';
+              }
+            },
+            {
+              title: 'Ações',
+              data: null,
+              orderable: false,
+              render: function (value, type, row) {
+                const btnGerarProduto = hasPerm('produtos:cadastrar')
+                  ? `<button class="btn btn-outline-secondary btn-sm btn-gerar-produto" data-id="${row.id}" data-nome="${row.nome}" title="Converter em produto"><i class="fa-solid fa-box"></i></button>`
+                  : '';
+                return `${btnGerarProduto}`;
+              }
+            }
+          ]
+        });
+
+        setupDataTableColumnFilters({
+          tableSelector: '#tabela-regulacao-projetos',
+          dataTable: table,
+          excludeTitles: ['Ações']
+        });
+      } catch (error) {
+        showToast(`Erro ao carregar relatório: ${error.message || 'Erro desconhecido.'}`, 'error');
+      }
+    };
+
+    const hasPerm = (key) => {
+      const permissoesSessao = getPermissoes();
+      return permissoesSessao && permissoesSessao[key] === true;
+    };
+
+    window.regulacaoAtualizarTabelaProdutos = carregarRelatorio;
+
+    const extrairProdutoId = (result) => {
+      if (!result) return null;
+      if (result.data && typeof result.data === 'object' && result.data.id) return result.data.id;
+      if (Array.isArray(result.data) && result.data[0]?.id) return result.data[0].id;
+      if (result.id) return result.id;
+      return null;
+    };
+
+    const carregarModalCriarProduto = (produtoRef, contexto = 'cadastro') => {
+      return new Promise((resolve, reject) => {
+        window.__regProjetoSelecionado = null;
+        window.__regProdutoSelecionado = produtoRef || null;
+        window.__regProdutoModalContext = contexto;
+        $('#modalCriarProdutoContent').load('/page/regulatorio.projetos.produto.modal.html', function (response, status) {
+          if (status === 'error') {
+            reject(new Error('Não foi possível carregar o formulário do produto.'));
+            return;
+          }
+          resolve();
+        });
+      });
+    };
+
+    const abrirModalCriarProduto = async (produtoId, contexto = 'cadastro') => {
+      await carregarModalCriarProduto({ id: produtoId }, contexto);
+      $('#modalCriarProduto').modal('show');
+    };
+
+    const criarProdutoDoProjeto = async (projetoId) => {
+      const result = await req_POST(`${opt.urlRegulacaoProdutos}/${projetoId}`, {});
+      if (!result.success) {
+        showToast(result.message || 'Não foi possível converter o projeto em produto.', 'error');
+        return;
+      }
+
+      const produtoId = extrairProdutoId(result);
+      if (!produtoId) {
+        showToast('O endpoint não retornou o id do produto gerado.', 'error');
+        return;
+      }
+
+      await abrirModalCriarProduto(produtoId, 'cadastro');
+    };
+
+    const renderListaProdutosExistentes = (produtos = []) => {
+      const $lista = $('#listaProdutosExistentes');
+      if (!Array.isArray(produtos) || produtos.length === 0) {
+        $lista.html('<div class="list-group-item text-muted">Nenhum produto encontrado para este projeto.</div>');
+        return;
+      }
+
+      const produtosOrdenados = [...produtos].reverse();
+
+      $lista.html(produtosOrdenados.map((produto) => {
+        const codigo = produto.n_desenvolvimento || produto.codigo || produto.id;
+        const descricao = produto.descricao || 'Sem descrição';
+        const status = produto.status || 'Sem status';
+        const botaoEditar = `<button type="button" class="btn btn-outline-primary btn-sm btn-editar-prod-existente" data-id="${produto.id}"><i class="fa-solid fa-pen-to-square me-1"></i>Editar</button>`;
+        return `<div class="list-group-item">
+          <div class="produtos-existentes-meta">
+            <strong>${codigo}</strong>
+            <small>${descricao} • Status: ${status}</small>
+          </div>
+          <div>${botaoEditar}</div>
+        </div>`;
+      }).join(''));
+    };
+
+    const abrirModalProdutosExistentes = (projetoId, produtos) => {
+      projetoPendenteCriacaoProdutoId = projetoId;
+      renderListaProdutosExistentes(produtos);
+      $('#modalProdutosExistentes').modal('show');
+    };
+
+    $('#btnRecarregarRegulacao').on('click', carregarRelatorio);
+
+    $('#tabela-regulacao-projetos').on('click', '.btn-gerar-produto', async function () {
+      const id = $(this).data('id');
+      const rowData = data.find((item) => item.id === id);
+      const statusAtual = getStatusAtual(rowData);
+
+      if (statusAtual === 'Bloqueado' || !statusRelatorioRegulacao.includes(statusAtual)) {
+        showToast('Projeto com status inválido para regulação.', 'warning');
+        return;
+      }
+
+      try {
+        const listaProdutos = await req_GET(opt.urlRegulacaoProdutos);
+        if (listaProdutos.success && Array.isArray(listaProdutos.data)) {
+          const existentes = listaProdutos.data.filter((produto) => String(produto.projeto_id) === String(id));
+
+          if (existentes.length > 0) {
+            abrirModalProdutosExistentes(id, existentes);
+            return;
+          }
+        }
+
+        await criarProdutoDoProjeto(id);
+      } catch (error) {
+        showToast(`Erro: ${error.message || 'Erro desconhecido.'}`, 'error');
+      }
+    });
+
+    $('#btnCriarNovoMesmoAssim').on('click', async function () {
+      if (!projetoPendenteCriacaoProdutoId) {
+        showToast('Projeto não identificado para criação do produto.', 'warning');
+        return;
+      }
+
+      try {
+        $('#modalProdutosExistentes').modal('hide');
+        await criarProdutoDoProjeto(projetoPendenteCriacaoProdutoId);
+      } catch (error) {
+        showToast(`Erro: ${error.message || 'Erro desconhecido.'}`, 'error');
+      }
+    });
+
+    $('#listaProdutosExistentes').on('click', '.btn-editar-prod-existente', async function () {
+      const produtoId = $(this).data('id');
+      if (!produtoId) {
+        showToast('Produto não identificado para edição.', 'warning');
+        return;
+      }
+
+      try {
+        $('#modalProdutosExistentes').modal('hide');
+        await abrirModalCriarProduto(produtoId, 'edicao');
+      } catch (error) {
+        showToast(`Erro: ${error.message || 'Erro desconhecido.'}`, 'error');
+      }
+    });
+
+    $('#modalProdutosExistentes').on('hidden.bs.modal', function () {
+      projetoPendenteCriacaoProdutoId = null;
+      $('#listaProdutosExistentes').empty();
+    });
+
+    carregarRelatorio();
+  });
+</script>

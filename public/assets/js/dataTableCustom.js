@@ -41,6 +41,56 @@ $(function () {
 
 });
 
+window.getStandardDataTableLanguage = function getStandardDataTableLanguage(overrides) {
+    return $.extend(true, {}, $.fn.dataTable.defaults.language || {}, overrides || {});
+};
+
+// Inicializador padrão para manter comportamento consistente entre tabelas.
+window.createStandardDataTable = function createStandardDataTable(tableSelector, options) {
+    if (!tableSelector) {
+        return null;
+    }
+
+    const config = $.extend(true, {
+        searching: true
+    }, options || {});
+
+    return $(tableSelector).DataTable(config);
+};
+
+// Padroniza filtros por coluna em qualquer DataTable do sistema.
+window.setupDataTableColumnFilters = function setupDataTableColumnFilters(config) {
+    const tableSelector = config && config.tableSelector;
+    const dataTable = config && config.dataTable;
+    const excludeTitles = (config && config.excludeTitles) || [];
+
+    if (!tableSelector || !dataTable) {
+        return;
+    }
+
+    const $thead = $(`${tableSelector} thead`);
+
+    $thead.find('th').each(function () {
+        const title = $(this).text().trim();
+        if (!title || excludeTitles.includes(title)) {
+            return;
+        }
+        $(this).html(`<input type="text" class="form-control form-control-sm" placeholder="${title} "/>`);
+    });
+
+    // Evita ordenar ao clicar no input de filtro.
+    $thead.off('click.dtColFilter mousedown.dtColFilter', 'th input');
+    $thead.on('click.dtColFilter mousedown.dtColFilter', 'th input', function (event) {
+        event.stopPropagation();
+    });
+
+    $thead.off('input.dtColFilter keyup.dtColFilter', 'th input');
+    $thead.on('input.dtColFilter keyup.dtColFilter', 'th input', function () {
+        const visibleColumnIndex = $(this).closest('th').prevAll(':visible').length;
+        dataTable.column(`${visibleColumnIndex}:visible`).search(this.value).draw();
+    });
+};
+
 //filtra sem acentos
 function accents_supr(data) {
     return !data ?
@@ -48,26 +98,37 @@ function accents_supr(data) {
         typeof data === 'string' ?
             data
                 .replace(/\n/g, ' ')
-                .replace(/[áàäâ]/g, 'a')
+                .toLowerCase()
+                .replace(/[áàäâã]/g, 'a')
                 .replace(/[éèëê]/g, 'e')
                 .replace(/[íìïî]/g, 'i')
-                .replace(/[óòöô]/g, 'o')
-                .replace(/[úùüû]/g, 'u') :
+                .replace(/[óòöôõ]/g, 'o')
+                .replace(/[úùüû]/g, 'u')
+                .replace(/ç/g, 'c') :
             data;
-    jQuery.extend(jQuery.fn.dataTableExt.oSort,
-        {
-            "brasil-string-asc": function (s1, s2) {
-                return s1.localeCompare(s2);
-            },
-            "brasil-string-desc": function (s1, s2) {
-                return s2.localeCompare(s1);
-            }
-        });
-    jQuery.fn.DataTable.ext.type.search['brasil-string'] = function (data) {
-        return accents_supr(data);
-    }
 }
-;
+
+jQuery.extend(jQuery.fn.dataTableExt.oSort, {
+    "brasil-string-asc": function (s1, s2) {
+        return accents_supr(s1).localeCompare(accents_supr(s2));
+    },
+    "brasil-string-desc": function (s1, s2) {
+        return accents_supr(s2).localeCompare(accents_supr(s1));
+    }
+});
+
+// Busca global e por coluna sem acento para strings e HTML.
+jQuery.fn.DataTable.ext.type.search.string = function (data) {
+    return accents_supr(data);
+};
+
+jQuery.fn.DataTable.ext.type.search.html = function (data) {
+    return accents_supr(data);
+};
+
+jQuery.fn.DataTable.ext.type.search['brasil-string'] = function (data) {
+    return accents_supr(data);
+};
 
 //clear filters
 

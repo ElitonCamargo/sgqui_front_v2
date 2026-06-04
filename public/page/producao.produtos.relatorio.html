@@ -1,0 +1,120 @@
+<style>
+  .report-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 1rem 0;
+  }
+
+  .report-alert {
+    border-left: 4px solid #0d6efd;
+  }
+</style>
+
+<h2>Relatório de Produtos em Produção</h2>
+<p class="text-muted mb-0">Somente produtos liberados e vinculados a projetos não bloqueados aparecem nesta lista.</p>
+
+<div class="alert alert-info report-alert mt-3" role="alert">
+  Cada produto mantém acesso ao projeto original para preservar a formulação aprovada no fluxo regulatório.
+</div>
+
+<div class="report-toolbar">
+  <div>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnRecarregarProducao">
+      <i class="fa-solid fa-rotate me-1"></i> Recarregar
+    </button>
+  </div>
+  <div>
+    <span class="badge text-bg-primary">Projeto original acessível pela produção</span>
+  </div>
+</div>
+
+<table id="tabela-producao-produtos" class="table table-striped table-bordered w-100">
+  <thead>
+    <tr>
+      <th>Nº Desenvolvimento</th>
+      <th>Produto</th>
+      <th>Projeto</th>
+      <th>Status do Projeto</th>
+      <th>Tipo</th>
+      <th>Natureza Física</th>
+      <th>Data Emissão</th>
+      <th style="width: 200px;">Ações</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  $(function () {
+    let data = [];
+    let table = null;
+
+    const carregarRelatorio = async () => {
+      try {
+        const response = await req_GET(opt.urlProducaoProdutos);
+
+        if (!response.success) {
+          showToast(response.message || 'Erro ao carregar produtos em produção.', 'error');
+          return;
+        }
+
+        data = (response.data || []).filter(item =>
+          item.projeto_status !== 'Bloqueado' && statusRelatorioProducao.includes(item.projeto_status)
+        );
+
+        if (table) {
+          table.clear().rows.add(data).draw();
+          return;
+        }
+
+        table = createStandardDataTable('#tabela-producao-produtos', {
+          data,
+          order: [[6, 'desc']],
+          language: getStandardDataTableLanguage({
+            emptyTable: 'Nenhum produto disponível para produção.'
+          }),
+          columns: [
+            { title: 'Nº Desenvolvimento', data: 'n_desenvolvimento' },
+            { title: 'Produto', data: 'descricao' },
+            { title: 'Projeto', data: 'projeto_id' },
+            { title: 'Status do Projeto', data: 'projeto_status' },
+            { title: 'Tipo', data: 'tipo' },
+            { title: 'Natureza Física', data: 'natureza_fisica' },
+            {
+              title: 'Data Emissão',
+              data: 'data_emissao',
+              render: function (value) {
+                return formatarDataPtBr(value);
+              }
+            },
+            {
+              title: 'Ações',
+              data: null,
+              orderable: false,
+              render: function (value, type, row) {
+                const btnProjetoOriginal = `<a class="btn btn-outline-secondary btn-sm me-1" href="/page/projeto_impressao.html?id=${row.projeto_id}" target="_blank" title="Ver projeto original"><i class="fa-solid fa-file-lines"></i></a>`;
+                const btnImprimirProducao = `<a class="btn btn-outline-secondary btn-sm btn-ordem-producao" href="/page/producao.ordem.html?id=${row.id}" target="_blank" title="Ordem de produção"><i class="fa-solid fa-print"></i></a>`;
+                return `${btnProjetoOriginal}${btnImprimirProducao}`;
+              }
+            }
+          ]
+        });
+
+        setupDataTableColumnFilters({
+          tableSelector: '#tabela-producao-produtos',
+          dataTable: table,
+          excludeTitles: ['Ações']
+        });
+      } catch (error) {
+        showToast(`Erro ao carregar relatório: ${error.message || 'Erro desconhecido.'}`, 'error');
+      }
+    };
+
+    $('#btnRecarregarProducao').on('click', carregarRelatorio);
+
+    carregarRelatorio();
+  });
+</script>
